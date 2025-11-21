@@ -140,7 +140,7 @@ export default function Home() {
                   {role.description}
                 </AppText>
                 <TouchableOpacity
-                  onPress={() => router.push("/map/MapPicker")}
+                  onPress={() => router.push("/user-signup")}
                   style={{
                     marginTop: 20,
                     paddingVertical: 7,
