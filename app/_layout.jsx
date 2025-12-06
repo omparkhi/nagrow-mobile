@@ -1,17 +1,50 @@
-import { Stack } from "expo-router";
+import { Stack, useNavigation } from "expo-router";
 import { useDispatch } from "react-redux";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SplashScreen } from "expo-router";
-import { useEffect } from "react";
+// import { useEffect } from "react";
 import { useFonts } from "expo-font";
 import { Provider } from "react-redux";
-import { store } from "@/redux/store";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "@/redux/store";
 import RootWrapper from "./rootWrapper";
+import { Ionicons } from "@expo/vector-icons";
+import { TouchableOpacity } from "react-native";
+import { useEffect, useState } from "react";
+import ViewOnMapPage from "./user/address/view-map-page";
+import { ToastProvider } from "./ToastContext";
+import { Alert } from "react-native";
+import { getMessaging } from "@react-native-firebase/messaging";
+import messaging from '@react-native-firebase/messaging';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { connectSocket } from "@/services/connectSocket";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  
+  // useEffect(() => {
+  //   async function getToken() {
+  //     const authStatus = await messaging().requestPermission();
+  //     const enabled =
+  //       authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+  //       authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+  //     if (enabled) {
+  //       const fcmToken = await messaging().getToken();
+  //       if (fcmToken) {
+  //         console.log('FCM Token:', fcmToken);
+  //         Alert.alert('FCM Token', fcmToken); // You’ll see a token popup
+  //       } else {
+  //         console.log('Failed to get FCM token');
+  //       }
+  //     } else {
+  //       console.log('Permission denied for notifications');
+  //     }
+  //   }
+  //   getToken();
+  // }, []);
 
   const [loaded] = useFonts({
     "Nunito-Regular": require("../assets/fonts/Nunito-Bold.ttf"),
@@ -19,6 +52,23 @@ export default function RootLayout() {
     "Nunito-Bold": require("../assets/fonts/Nunito-Bold.ttf"),
     "Nunito-Light": require("../assets/fonts/Nunito-Light.ttf")
   });
+
+
+  //connect socket at one time 
+  useEffect(() => {
+    const initSocket = async() => {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) return;
+
+      const socket = connectSocket(token);
+
+      socket.on("connect", () => {
+        console.log("Global socket connected");
+      });
+    };
+
+    initSocket();
+  }, []);
 
   useEffect(() => {
     if (loaded) {
@@ -30,11 +80,17 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      <GestureHandlerRootView>
       <RootWrapper bg="#000" barStyle="light">
         <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+          <ToastProvider>
           <Stack screenOptions={{ headerShown: false }} />
+          </ToastProvider>
+          </PersistGate>
         </Provider>
       </RootWrapper>
+      </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 } 

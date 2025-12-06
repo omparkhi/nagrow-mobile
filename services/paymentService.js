@@ -19,7 +19,7 @@ export default function usePayment ({ cart, user, restaurantId, userId, setBacke
                 distanceKm: backendTotals.distanceKm,
                 deliveryFee: backendTotals.deliveryFee,
                 deliveryAddress: {
-                    formattedAddress: selectedAddress.formattedAddress,
+                    fullAddress: selectedAddress.fullAddress,
                     coordinates: selectedAddress.coordinates.coordinates,
                 },
             };
@@ -124,7 +124,7 @@ export default function usePayment ({ cart, user, restaurantId, userId, setBacke
                 items: cart.items,
                 tip: cart.tip,
                 deliveryAddress: {
-                    formattedAddress: selectedAddress.formattedAddress,
+                    fullAddress: selectedAddress.fullAddress,
                     coordinates: selectedAddress.coordinates.coordinates,
                 },
                 distanceKm: backendTotals.distanceKm,
@@ -133,13 +133,16 @@ export default function usePayment ({ cart, user, restaurantId, userId, setBacke
 
             if (codOrder.data.success) {
                 dispatch(clearCart());
-                router.push("/user/order/order-success", {
-                    id: codOrder.data.order._id,
-                    orderId: codOrder.data.order.orderId,
-                    paymentType: "cod",
-                    totalAmount: codOrder.data.order.totalAmount,
-                    paymentStatus: codOrder.data.order.paymentStatus,
-                });
+                router.push({
+                    pathname: `/user/order/${codOrder.data.order._id}`, 
+                    params: {
+                        // id: codOrder.data.order._id,
+                        orderId: codOrder.data.order.orderId,
+                        paymentType: "cod",
+                        distanceKm: codOrder.data.order.distanceKm,
+                        totalAmount: codOrder.data.order.totalAmount,
+                        paymentStatus: codOrder.data.order.paymentStatus,
+                    }});
             }
         } catch (err) {
             console.log("Error in COD order", err);

@@ -7,15 +7,20 @@ export default function RootWrapper({ children, bg = "#fff", barStyle = "dark" }
   const insets = useSafeAreaInsets();
 
   return (
-    <View
+    <>
+      <View
       style={{
         flex: 1,
         backgroundColor: bg,
         paddingTop: insets.top,
+        
       }}
     >
       <StatusBar style={barStyle} backgroundColor={bg} />
       {children}
+      {/* <View style={{ height: insets.bottom, backgroundColor: bg }} /> */}
     </View>
+    
+    </>
   );
 }

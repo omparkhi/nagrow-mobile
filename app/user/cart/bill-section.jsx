@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, LayoutAnimation, Platform, UIManager, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, LayoutAnimation, Platform, UIManager, StyleSheet, Animated } from "react-native";
 import { Receipt, ChevronRight } from "lucide-react-native";
 import AppText from "@/components/AppText";
+import { useRef } from "react";
 
 
 // Enable animation for Android
@@ -18,11 +19,21 @@ export default function BillSection({
   tip,
 }) {
   const [open, setOpen] = useState(false);
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    Animated.timing(rotateAnim, {
+      toValue: open ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
     setOpen(!open);
   };
+
+  const rotation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["90deg", "270deg"],
+  });
 
   return (
     <View style={{ backgroundColor: "white", padding: 16, borderRadius: 12, marginTop: 12 }}>
@@ -43,12 +54,9 @@ export default function BillSection({
           </View>
 
           <TouchableOpacity onPress={toggle}>
-            <ChevronRight
-              size={22}
-              style={{
-                transform: [{ rotate: open ? "270deg" : "90deg" }],
-              }}
-            />
+            <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+              <ChevronRight size={22} color="#000" />
+            </Animated.View>
           </TouchableOpacity>
         </View>
       </View>

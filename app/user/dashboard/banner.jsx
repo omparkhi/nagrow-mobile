@@ -7,8 +7,10 @@ import { Ionicons, MaterialIcons, Feather } from "@expo/vector-icons";
 import Foodies from "@/assets/foodies.json";  
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAddresses } from "@/redux/slices/user/addressSlice";
+import { useRouter } from "expo-router";
 
 export default function Banner() {
+  const router = useRouter();
   const dispatch = useDispatch();
   const selectedAddress = useSelector((state) => state.address.selectedAddress);
 
@@ -26,7 +28,7 @@ export default function Banner() {
         {/* Top Bar */}
         <View style={styles.topRow}>
           <View style={{ width: "80%" }}>
-            <TouchableOpacity style={styles.addressWrap}>
+            <TouchableOpacity style={styles.addressWrap} onPress={() => router.push("/user/address/address-card")}>
             <MaterialIcons name="home" size={22} color="white"  />
             <AppText variant="caption" color="white"  style={{ marginLeft: 2 }}>
               Home
@@ -35,7 +37,7 @@ export default function Banner() {
             </TouchableOpacity>
 
             <AppText variant="light" numberOfLines={1} ellipsizeMode="tail" style={styles.addressText}>
-              {selectedAddress ? selectedAddress.formattedAddress : "Fetching location..."}
+              {selectedAddress ? selectedAddress.fullAddress : "Fetching location..."}
             </AppText>
           </View>
             

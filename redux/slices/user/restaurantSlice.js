@@ -20,6 +20,7 @@ export const fetchRestaurantById = createAsyncThunk(
     async (id, thunkAPI) => {
         try {
             const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/restaurants/${id}`);
+            console.log("API Response:", res.data);
             return res.data;
         } catch (err) {
             return thunkAPI.rejectWithValue(err.response?.data?.message || "failed to fetch restaurant by id");

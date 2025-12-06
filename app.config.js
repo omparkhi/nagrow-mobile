@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 
 export default {
   expo: {
@@ -25,12 +25,11 @@ export default {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: "com.anonymous.nagrowmobile",
-    },
-
-    web: {
-      output: "static",
-      favicon: "./assets/images/favicon.png",
-      bundler: "metro",
+      config: {
+        googleMaps: {
+          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+        },
+      },
     },
 
     plugins: [
@@ -56,15 +55,10 @@ export default {
       ],
     ],
 
-    experiments: {
-      typedRoutes: true,
-      reactCompiler: true,
-    },
-
     extra: {
-      router: {},
+      GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
       eas: {
-        projectId: "8d3b6e33-ead4-419e-91ab-289a96656b11"
+        projectId: "8d3b6e33-ead4-419e-91ab-289a96656b11",
       },
     },
   },

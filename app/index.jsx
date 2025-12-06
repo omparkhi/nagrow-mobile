@@ -18,10 +18,10 @@ export default function HomeRedirector() {
               router.replace("/user/dashboard/dash");
               break;
             case "restaurant":
-              router.replace("/restaurant-home");
+              router.replace("/restaurant/dashboard/dash");
               break;
             case "rider":
-              router.replace("/rider-home");
+              router.replace("/rider/dashboard/dash");
               break;
             default:
               router.replace("/home"); // fallback page

@@ -89,9 +89,9 @@ export default function RazorpayWebView() {
             if (verifyRes.data.success) {
                 dispatch(clearCart());
                 router.replace({
-                    pathname: "/user/order/order-success",
+                    pathname: `/user/order/${verifyRes.data.order._id}`,
                     params: {
-                        id: verifyRes.data.order._id,
+                        // id: verifyRes.data.order._id,
                         orderId: verifyRes.data.order.orderId,
                         paymentType: "online",
                         paymentId: paymentData.data.razorpay_payment_id,

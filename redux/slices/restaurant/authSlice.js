@@ -8,8 +8,10 @@ export const loginRes = createAsyncThunk(
     "restaurantAuth/loginRes", 
     async (formData, { rejectWithValue }) => {
         try {
-            const res = await axios.post(`${API_BASE}/api/restaurants/login`, formData);
+            // console.log("POST URL:", `${API_BASE}/api/restaurants/login`);
 
+            const res = await axios.post(`${API_BASE}/api/restaurants/login`, formData);
+            // console.log("redux res", res.data);
             if (!res.data.success) {
                 return rejectWithValue(res.data.message);
             }
@@ -17,7 +19,7 @@ export const loginRes = createAsyncThunk(
             const { restaurant, token } = res.data;
 
             await AsyncStorage.setItem("token", token);
-            await AsyncStorage.setItem("restaurantId", restaurant.id);
+            await AsyncStorage.setItem("restaurantId", restaurant._id);
             await AsyncStorage.setItem("userType", "restaurant");
 
             axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -25,7 +27,7 @@ export const loginRes = createAsyncThunk(
             return { restaurant, token };
 
         } catch (err) {
-            return rejectWithValue(err.response?.data?.message || "Login failed");
+            return rejectWithValue(err.response?.data?.message || err.message);
         }
     }
 );
@@ -35,6 +37,7 @@ export const signupRes = createAsyncThunk(
     async (formData, { rejectWithValue }) => {
         try {
             const res = await axios.post(`${API_BASE}/api/restaurants/register`, formData);
+            // console.log(res.data);
 
             if (!res.data.success) {
                 return rejectWithValue(res.data.message);
@@ -43,7 +46,7 @@ export const signupRes = createAsyncThunk(
             const { restaurant, token } = res.data;
 
             await AsyncStorage.setItem("token", token);
-            await AsyncStorage.setItem("restaurantId", restaurant.id);
+            await AsyncStorage.setItem("restaurantId", restaurant._id);
             await AsyncStorage.setItem("userType", "restaurant");
 
             axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -67,12 +70,10 @@ export const fetchResProfile = createAsyncThunk(
 
             axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-            if (!res.data.success) {
+            const res = await axios.get(`${API_BASE}/api/restaurants/profile/${restaurantId}`);
+             if (!res.data.success) {
                 return rejectWithValue(res.data.message);
             }
-
-            const res = await axios.get(`${API_BASE}/api/restaurants/profile/${restaurantId}`);
-
             return {restaurant: res.data.restaurant, token};
 
         } catch (err) {
@@ -94,7 +95,7 @@ const authSlice = createSlice({
     reducers: {
         logout: (state) => {
             state.restaurant= null;
-            state.token = null,
+            state.token = null;
 
             AsyncStorage.removeItem("token");
             AsyncStorage.removeItem("restaurantId");

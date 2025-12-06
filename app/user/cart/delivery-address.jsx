@@ -14,7 +14,7 @@ export default function DeliveryAddress({ selectedAddress }) {
 
         <View style={styles.addressTextWrapper}>
           <AppText variant="small" style={styles.addressText} numberOfLines={2}>
-            {selectedAddress.formattedAddress}
+            {selectedAddress.fullAddress}
           </AppText>
         </View>
       </TouchableOpacity>

@@ -12,6 +12,9 @@ import axios from "axios";
 import { View } from "react-native";
 import usePayment from "@/services/paymentService";
 import NoCartFound from "./no-cart-found";
+import { ScrollView } from "react-native";
+import { ActivityIndicator } from "react-native";
+import AppText from "@/components/AppText";
 
 
 export default function CartPage () {
@@ -32,22 +35,13 @@ export default function CartPage () {
     (state) => state.address
   );
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="small" color="#ff5733" />
-        <AppText style={styles.loadingText}>loading address ...</AppText>
-      </View>
-    );
-  }
+  
 
   // if (error) {
   //   return <AppText style={styles.errorText}>{error}</AppText>;
   // }
 
-  if (!selectedAddress) {
-    return <AppText style={styles.noAddress}>No address found</AppText>;
-  }
+  
 
 
     const [backendTotals, setBackendTotals] = useState({
@@ -158,18 +152,32 @@ export default function CartPage () {
   }
 }, [cart.items.length]);
 
+if (loading) {
+    return (
+      <View>
+        <ActivityIndicator size="small" color="#ff5733" />
+        <AppText >loading address ...</AppText>
+      </View>
+    );
+  }
+
+if (!selectedAddress) {
+    return <AppText >No address found</AppText>;
+  }
 
 if (!cart.items.length) return <NoCartFound />;
 
     return (
         <>
             <RestaurantHeader restaurant={restaurant} />
-            <View style={{ marginHorizontal: 10 }}>
+            <ScrollView>
+            <View style={{ marginHorizontal: 10, marginBottom: 50 }}>
               <MenuSection items={items} increment={(id) => dispatch(increment(id))} decrement={(id) => dispatch(decrement(id))} handleAddItem={handleAddItem} restaurantId={restaurantId} />
               <BillSection subtotal={subtotal} deliveryFee={deliveryFee} distanceKm={backendTotals.distanceKm} grandTotal={grandTotal} backendTotals={backendTotals} tip={cart.tip}  />
               <DeliveryAddress selectedAddress={selectedAddress} />
               <PaymentOptions method={method} setMethod={setMethod} onPayOnline={handlePaymentOnline} onPayCOD={handleOrderCod}/>
             </View>
+            </ScrollView>
         </>
     )
 }

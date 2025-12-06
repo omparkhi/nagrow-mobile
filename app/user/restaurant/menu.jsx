@@ -55,12 +55,16 @@ export default function RestaurantMenu({ menu, restaurant }) {
 };
 
 
-  
+  if (!menu || Object.keys(menu).length === 0) {
+  return <AppText>No menu available</AppText>;
+}
+
 
 
   return (
     <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
-      {Object.keys(menu).map((cat) => (
+      {menu && Object.keys(menu).length > 0 &&
+      Object.keys(menu).map(cat => (
         <View key={cat}>
           <AppText style={{ fontSize: 20, marginBottom: 10 }}>
             {cat}

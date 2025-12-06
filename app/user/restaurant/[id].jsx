@@ -23,7 +23,7 @@ export default function RestaurantPage() {
   return (
     <ScrollView>
         <RestaurantHeader restaurant={restaurant} />
-        <RestaurantMenu menu={menu} restaurant={restaurant} />
+        <RestaurantMenu menu={menu || {}} restaurant={restaurant} />
     </ScrollView>
   )
 }

@@ -22,10 +22,11 @@
                 await AsyncStorage.setItem("userType", "user");
 
                 axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
+                
                 return { user, token };
+
             } catch (err) {
-                return rejectWithValue(err.response?.data?.message || "Login failed");
+                return rejectWithValue(err.response?.data?.message || err?.message);
             }
         }
     );
@@ -72,6 +73,7 @@
                 if (!res.data.success) {
                     return rejectWithValue("Failed to fetch user");
                 }
+                // console.log("fetch user:", res.data.user);
 
             return { user: res.data.user, token };
     } catch (err) {

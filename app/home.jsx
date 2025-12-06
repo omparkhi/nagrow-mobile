@@ -27,31 +27,32 @@ export default function Home() {
       title: "Customer",
       description: "Order delicious food from local restaurants.",
       animation: customer,
-      link: "/customer-options",
+      link: "/user-signup",
     },
     {
       title: "Restaurant",
       description: "Partner with NaGrow to reach more customers.",
       animation: restaurant,
-      link: "/restaurant-login",
+      link: "/restaurant-signup",
     },
     {
       title: "Delivery Partner",
       description: "Earn by delivering orders around your city.",
       animation: delivery,
-      link: "/rider-login",
+      link: "/rider-signup",
     },
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-transparent">
+    <>
       {/* Background */}
       <ImageBackground
         source={rootBg}
-        className="absolute inset-0 w-full h-full"
+        style={{ position: "absolute", width: "100%", height: "150%",  }}
         resizeMode="cover"
-        blurRadius={8}
+        blurRadius={2}
       />
+
 
       <ScrollView
         contentContainerStyle={{
@@ -103,13 +104,13 @@ export default function Home() {
                 key={index}
                 style={{
                   width: width * 0.9,
-                  backgroundColor: "rgba(255, 255, 255, 0.6)",
+                  backgroundColor: "rgba(255, 255, 255, 0.4)",
                   borderRadius: 18,
                   padding: 10,
                   alignItems: "center",
-                  // boxShadow: "0px 4px 6px rgba(0,0,0,0.3)",
+                  boxShadow: "0px 4px 6px rgba(0,0,0,0.3)",
 
-                  elevation: 5, // Android shadow
+                  // elevation: 5, // Android shadow
                   marginBottom: 16,
                 }}
               >
@@ -133,14 +134,14 @@ export default function Home() {
                 variant="small"
                   style={{
                     fontSize: 18,
-                    color: "#504f4fff", // slate-700
+                    color: "#3b3a3aff", // slate-700
                     textAlign: "center",
                   }}
                 >
                   {role.description}
                 </AppText>
                 <TouchableOpacity
-                  onPress={() => router.push("/user-signup")}
+                  onPress={() => router.push(role.link)}
                   style={{
                     marginTop: 20,
                     paddingVertical: 7,
@@ -165,6 +166,6 @@ export default function Home() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </>
   );
 }
