@@ -8,7 +8,7 @@ import useRiderLocation from "@/hooks/use-rider-location";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchRiderProfile } from "@/redux/slices/rider/authSlice";
 import { startShift, stopShift } from "@/redux/slices/rider/riderTrackingSlice";
-import { ActivityIndicator } from "react-native-web";
+import { ActivityIndicator } from "react-native";
 // import useRiderLocation from "@/hooks/use-rider-location";
 
 export default function StartShiftModal() {
@@ -27,18 +27,18 @@ export default function StartShiftModal() {
     // }, []);
     
 
-    const confirmStart = () => {
+    const confirmStart = async () => {
         setPopup(false);
         setLoading(true);
         try {
           dispatch(startShift());
-          dispatch(fetchRiderProfile());
-        // console.log("Shift started → tracking enabled");
+          dispatch(fetchRiderProfile()).unwrap();
+        console.log("Shift started → tracking enabled");
         } catch (err) {
           console.log("Error starting shift:", err);
         } finally {
-          setLoading(false); // hide loader
-        }
+          setLoading(false);
+    }
         
     };
 

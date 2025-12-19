@@ -6,7 +6,7 @@ import Header from "../header";
 import { fetchOrderById, updateOrderStatus } from "@/redux/slices/restaurant/orderSlice";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { getSocket } from "@/services/connectSocket";
-import { playNewOrderSound } from "@/hooks/rest-sound-notification";
+// import { playNewOrderSound } from "@/hooks/rest-sound-notification";
 import { useToast } from "@/app/ToastContext";
 
 export default function OrderDetails() {
@@ -23,6 +23,9 @@ export default function OrderDetails() {
     }
   }, [id]);
 
+  useEffect(() => {
+    console.log("order in rest:", currentOrder);
+  },[]);
   const statusFlow = {
     placed: "accepted",
     accepted: "preparing",
@@ -32,7 +35,7 @@ export default function OrderDetails() {
 
   const handleStatusChange = (nextStatus) => {
     if (!currentOrder || loading) return;
-    dispatch(updateOrderStatus({ id: currentOrder._id, status: nextStatus }));
+    dispatch(updateOrderStatus({ orderId: currentOrder._id, status: nextStatus }));
   };
 
   const statusColor = (status) => {
@@ -51,6 +54,12 @@ export default function OrderDetails() {
         return "#333";
     }
   };
+
+  // const RiderAssigned = (riderAssigned) => {
+  //   if (riderAssigned) {
+
+  //   }
+  // }
 
   if (loading || !currentOrder) {
     return (
@@ -85,7 +94,7 @@ export default function OrderDetails() {
       <View style={styles.container}>
         {/* Order Info */}
         <View style={styles.card}>
-          <AppText variant="small" style={styles.title}>Order #{currentOrder.orderId}</AppText>
+          <AppText variant="small" style={styles.title}>Order #{currentOrder.orderNo}</AppText>
           <View style={[styles.statusBadge, { backgroundColor: statusColor(currentOrder.status) }]}>
             <AppText variant="small" style={styles.statusText}>{currentOrder.status.toUpperCase()}</AppText>
           </View>
@@ -107,6 +116,17 @@ export default function OrderDetails() {
             )}
           />
         </View>
+
+         {/* rider Assigned */}
+         {currentOrder.riderAssigned && (
+          <View style={styles.card}>
+          <AppText variant="small" style={styles.sectionTitle}>Rider Assigned</AppText>
+          <AppText variant="small" style={styles.title}>Name: {currentOrder.riderId.name}</AppText>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor(currentOrder.status) }]}>
+            <AppText variant="small" style={styles.statusText}>{currentOrder.status.toUpperCase()}</AppText>
+          </View>
+        </View>
+         )}
 
         {/* Delivery & Payment */}
         <View style={styles.card}>

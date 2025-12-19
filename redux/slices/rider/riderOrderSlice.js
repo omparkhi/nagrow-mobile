@@ -19,10 +19,10 @@ export const fetchRiderOrder = createAsyncThunk(
 // update order status
 export const updateRiderOrderStatus = createAsyncThunk(
     "riderOrder/updateStatus",
-    async ({ id, riderId, status }, { rejectWithValue }) => {
+    async ({ orderId, riderId, status }, { rejectWithValue }) => {
         try {
             const res = await axios.put(`${API_BASE}/api/rider/order/update/status`, 
-                { id, riderId, status }
+                { orderId, riderId, status }
             );
             console.log("rider order status update:", res.data);
             return res.data.order;

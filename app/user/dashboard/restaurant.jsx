@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchRestaurants } from "@/redux/slices/user/restaurantSlice";
 import { useRouter } from "expo-router";
 import AppText from "@/components/AppText";
+import * as Location from "expo-location";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width - 32; // 16 padding each side + 16 gap between cards
@@ -13,17 +14,63 @@ export default function Restaurant() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { data: restaurants, loading } = useSelector((state) => state.restaurants);
+  const selectedAddress = useSelector((state) => state.address.selectedAddress);
 
   const [favorite, setFavorite] = useState({});
   const [bookmarks, setBookmarks] = useState({});
+  const [locationFetched, setLocationFetched] = useState(false);
 
   const toggleFavorite = (id) => setFavorite(prev => ({ ...prev, [id]: !prev[id] }));
   const toggleBookmark = (id) => setBookmarks(prev => ({ ...prev, [id]: !prev[id] }));
 
-  useEffect(() => {
-    dispatch(fetchRestaurants());
-  }, []);
+  // useEffect(() => {
+  //   console.log("selecet address:", selectedAddress);
+  // }, []);
+  // useEffect(() => {
+  //   dispatch(fetchRestaurants());
+  // }, []);
 
+ useEffect(() => {
+     const init = async () => {
+      // 1. DECLARE VARIABLES HERE
+      let lat, lng; 
+
+      try {
+        // Check if we have a saved address in Redux
+        const saveAddress = selectedAddress?.coordinates?.coordinates; // Optional chaining is safer
+
+        if (saveAddress && saveAddress.length === 2) {
+          // Use Saved Address
+          lat = saveAddress[1];
+          lng = saveAddress[0];
+        } else {
+          // 2. Fallback to Live GPS (Requires popup)
+          let { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === "granted") {
+            const loc = await Location.getCurrentPositionAsync({});
+            lat = loc.coords.latitude;
+            lng = loc.coords.longitude;
+          }
+        }
+
+        // Only dispatch if we actually have coordinates
+        if (lat && lng) {
+           dispatch(fetchRestaurants({ lat, lng }));
+        } else {
+           // Fallback if permission denied or no address
+           dispatch(fetchRestaurants({}));
+        }
+
+      } catch (err) {
+        console.log("Error fetching location", err);
+        dispatch(fetchRestaurants({}));
+      } finally {
+        setLocationFetched(true);
+      }
+    };
+
+    init();
+  }, [selectedAddress]); // Add selectedAddress to dependency array so it updates if user changes address
   //  useEffect(() => {
   //   console.log("Fetched Restaurants:", restaurants);
   // }, [restaurants]);

@@ -9,7 +9,8 @@ export const fetchOrder = createAsyncThunk(
     "orders/fetchOrder",   
     async(restaurantId, thunkAPI) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/get/orders/${restaurantId}`);
+            const res = await axios.get(`${API_BASE}/api/restaurant/get/order/${restaurantId}`);
+            // console.log("calling res order detail at rest app", res.data.order)
             return res.data.order;
         } catch (err) {
             return thunkAPI.rejectWithValue(err.response?.data || err.message);
@@ -21,7 +22,7 @@ export const fetchOrderById = createAsyncThunk(
     "orders/fetchOrderById",
     async(orderId, thunkAPI) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/order/details/${orderId}`);
+            const res = await axios.get(`${API_BASE}/api/restaurant/order/details/${orderId}`);
             return res.data.order;
         } catch (err) {
             return thunkAPI.rejectWithValue(err.response?.data || err.message);
@@ -31,10 +32,10 @@ export const fetchOrderById = createAsyncThunk(
 
 export const updateOrderStatus = createAsyncThunk(
     "orders/updateOrderStatus",
-    async({ id, status }, thunkAPI) => {
+    async({ orderId, status }, thunkAPI) => {
         try {
-            const res = await axios.put(`${API_BASE}/api/get/orders/update-status`, 
-                {id, status}
+            const res = await axios.put(`${API_BASE}/api/restaurant/order/update-status`, 
+                {orderId, status}
             );
             return res.data.order;
         } catch (err) {

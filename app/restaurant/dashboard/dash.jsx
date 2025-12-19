@@ -13,6 +13,7 @@ import { fetchOrder } from "@/redux/slices/restaurant/orderSlice";
 import GetOrder from "../order/get-order";
 import Header from "../header";
 import { useRouter } from "expo-router";
+import NagrowToast from "@/app/toast/NagrowToast";
 
 export default function Dashboard({ navigation }) {
   const router = useRouter();
@@ -23,12 +24,14 @@ export default function Dashboard({ navigation }) {
 
 
     useEffect(() => {
-  if (restaurant?._id) {
+  
     dispatch(fetchOrder(restaurant._id));
-  }
+  
 }, [restaurant]);
 
-
+    useEffect(() => {
+  console.log(restaurant);
+}, [restaurant]);
 
 
     // useEffect(() => {
@@ -38,6 +41,7 @@ export default function Dashboard({ navigation }) {
  
   return (
     <ScrollView style={{ flex: 1 }}>
+      <NagrowToast/>
       <DashboardMetricsRow/>
       <ActiveOrders activeOrders={active} />
       <PopularMenuInsights />

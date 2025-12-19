@@ -8,7 +8,7 @@ export const loginUser = createAsyncThunk(
     "auth/loginUser",
     async (formData, { rejectWithValue }) => {
        try {
-            const res = await axios.post(`${API_BASE}/api/users/login`, formData);
+            const res = await axios.post(`${API_BASE}/api/user/login`, formData);
             if (!res.data.success) {
                 return rejectWithValue(res.data.message);
             }

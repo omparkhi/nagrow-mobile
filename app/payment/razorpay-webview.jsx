@@ -8,8 +8,8 @@ import { useDispatch } from "react-redux";
 export default function RazorpayWebView() {
     const dispatch = useDispatch();
     const {
-        order_Id,
         orderId,
+        orderNo,
         amount,
         userName,
         userEmail,
@@ -24,12 +24,12 @@ export default function RazorpayWebView() {
             <script>
                 var options = {
                     key: "${process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID}",
-                    amount: ${Number(amount)},
+                    amount: ${Number(amount) * 100},
                     currency: "INR",
                     name: "Nagrow",
                     description: "Order Payment",
-                    order_id: "${order_Id}",
-                    orderId: "${orderId}",
+                    order_id: "${orderId}",
+                    orderNo: "${orderNo}",
                     prefill: {
                         name: "${userName}",
                         email: "${userEmail}",
@@ -82,7 +82,7 @@ export default function RazorpayWebView() {
 
            
 
-
+            console.log(verifyRes);
             
 
 
@@ -92,7 +92,7 @@ export default function RazorpayWebView() {
                     pathname: `/user/order/${verifyRes.data.order._id}`,
                     params: {
                         // id: verifyRes.data.order._id,
-                        orderId: verifyRes.data.order.orderId,
+                        orderNo: verifyRes.data.order.orderNo,
                         paymentType: "online",
                         paymentId: paymentData.data.razorpay_payment_id,
                         razorpayOrderId: paymentData.data.razorpay_order_id,

@@ -11,31 +11,31 @@ async function authHeader() {
 export const addressService = {
     async getAddresses() {
         const headers = await authHeader();
-        const res = await axios.get(`${API_BASE}/api/users/get-address`, { headers });
+        const res = await axios.get(`${API_BASE}/api/user/get-address`, { headers });
         return res.data;
     },
 
     async selectAddress(addressId) {
         const headers = await authHeader();
-        const res = await axios.get(`${API_BASE}/api/users/get-address?addressId=${addressId}`, { headers });
+        const res = await axios.get(`${API_BASE}/api/user/get-address?addressId=${addressId}`, { headers });
         return res.data;
     },
 
     async saveAddress(payload) {
         const headers = await authHeader();
-        const res = await axios.post(`${API_BASE}/api/users/save-address`, payload, { headers });
+        const res = await axios.post(`${API_BASE}/api/user/save-address`, payload, { headers });
         return res.data;
     },
 
     async updateAddress(addressId, payload) {
         const headers = await authHeader();
-        const res = await axios.put(`${API_BASE}/api/users/update-address/${addressId}`, payload, { headers });
+        const res = await axios.put(`${API_BASE}/api/user/update-address/${addressId}`, payload, { headers });
         return res.data;
     },
 
     async deleteAddress(addressId) {
         const headers = await authHeader();
-        const res = await axios.delete(`${API_BASE}/api/users/delete-address/${addressId}`, { headers });
+        const res = await axios.delete(`${API_BASE}/api/user/delete-address/${addressId}`, { headers });
         return res.data;
     }
 };

@@ -14,7 +14,13 @@ import { fetchOrderById } from "@/redux/slices/restaurant/orderSlice";
 import orderSound from "@/assets/notification/order.mp3";
 import { Audio } from "expo-av";
 import {  useRef } from "react";
-import { playOrderUpdateSound } from "@/hooks/user-order-notification";
+// import { playOrderUpdateSound } from "@/hooks/user-order-notification";
+import { playOrderUpdateSound } from "@/hooks/notification";
+import { setRouteCache, setRouteFetched } from "@/redux/slices/map/mapSlice";
+import PolylineDecoder from "@mapbox/polyline";
+import { setETA } from "@/redux/slices/map/mapSlice";
+import { saveLastRiderLocation } from "@/redux/slices/rider/riderLocationSlice";
+import { usePushNotification } from "@/hooks/usePushNotification";
 
 
 export default function UserLayout() {
@@ -23,53 +29,81 @@ export default function UserLayout() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
 
+  usePushNotification(user?._id, "user");
   
   useEffect(() => {
     dispatch(fetchUser());
-  }, []);
+  }, [dispatch]);
 
+useEffect(() => {
+    // 1. Declare socket variable here so cleanup can see it
+    let socket = null;
 
-  useEffect(() => {
+    // 2. Define handlers (defined outside so they are stable)
+    const handleOrderStatus = (data) => {
+        console.log("GLOBAL ORDER STATUS:", data);
+        playOrderUpdateSound();
+        showToast(`Order ${data.orderNo}`, `Your Order is now ${data.status}`);
+        dispatch(fetchOrderById(data.orderId));
+    };
+
+    const handleRouteInit = (data) => {
+        const route = PolylineDecoder.decode(data.polyline).map(([lat, lng]) => ({
+            latitude: lat,
+            longitude: lng,
+        }))
+        console.log("order route init polyline:", route);
+        dispatch(setRouteCache(route));
+        dispatch(setRouteFetched());
+    };
+
+    // 3. Init Function
     const initSocket = async () => {
       if (!user?._id) return;
-      const userId = await AsyncStorage.getItem("userId");
-      const userType = await AsyncStorage.getItem("userType");
+      
+      const userId = user._id;
+      // ✅ FIX: Default to "user" if AsyncStorage is null
+      const typeFromStorage = await AsyncStorage.getItem("userType");
+      const userType = typeFromStorage || "user"; 
 
-      if (!userId || !userType) return;
+      console.log("Found User Type:", userType); // This should now print
 
-      const socket = getSocket();
-      if (!socket) return;            // not initialized yet
-      if (!socket.connected) return;
-      // console.log("userId:", userId);
-      // console.log("userType:", userType);
+      socket = getSocket();
+      
+      if (!socket) {
+        console.log("❌ Socket instance is null. Make sure connectSocket() runs in App.js");
+        return;
+      }
 
+      // Join Room
       socket.emit("joinRoom", { 
         roomType: userType, 
         roomId: userId 
       });
+      console.log(`🔌 User Joined Room: ${userType}_${userId}`);
 
-      const handleOrderStatus = async(data) => {
-        console.log("GLOBAL ORDER STATUS:", data);
-        playOrderUpdateSound();
-        showToast(
-          `Order ${data.orderId}`,
-          `Status changed to ${data.status}`
-        );
-
-        // IF user is inside an order page, Redux page will re-fetch
-        dispatch(fetchOrderById(data.orderId));
-      }
-
-      // GLOBAL ORDER STATUS LISTENER (ALWAYS ACTIVE)
+      // Attach Listeners
+      // socket.on("order:eta:update", handleEtaUpdate);
+      socket.on("order:route:init", handleRouteInit);
       socket.on("order:status", handleOrderStatus);
-    
-    
-      return () => {
+    };
+
+    // 4. Execute Init
+    initSocket();
+
+    // 5. ✅ FIX: Cleanup must be returned by useEffect, NOT initSocket
+    return () => {
+      if (socket) {
+        console.log("Cleaning up socket listeners...");
         socket.off("order:status", handleOrderStatus);
-      };
-    }
-  initSocket();
-  }, []);
+        socket.off("order:route:init", handleRouteInit);
+        socket.off("order:eta:update", handleEtaUpdate);
+      }
+    };
+
+  }, [user?._id]);
+
+
 
   return (
     <ProtectedRoute>

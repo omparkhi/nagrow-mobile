@@ -10,7 +10,7 @@ export const loginRes = createAsyncThunk(
         try {
             // console.log("POST URL:", `${API_BASE}/api/restaurants/login`);
 
-            const res = await axios.post(`${API_BASE}/api/restaurants/login`, formData);
+            const res = await axios.post(`${API_BASE}/api/restaurant/login`, formData);
             // console.log("redux res", res.data);
             if (!res.data.success) {
                 return rejectWithValue(res.data.message);
@@ -36,7 +36,7 @@ export const signupRes = createAsyncThunk(
     "restaurantAuth/signupRes", 
     async (formData, { rejectWithValue }) => {
         try {
-            const res = await axios.post(`${API_BASE}/api/restaurants/register`, formData);
+            const res = await axios.post(`${API_BASE}/api/restaurant/register`, formData);
             // console.log(res.data);
 
             if (!res.data.success) {
@@ -70,7 +70,7 @@ export const fetchResProfile = createAsyncThunk(
 
             axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-            const res = await axios.get(`${API_BASE}/api/restaurants/profile/${restaurantId}`);
+            const res = await axios.get(`${API_BASE}/api/restaurant/profile/${restaurantId}`);
              if (!res.data.success) {
                 return rejectWithValue(res.data.message);
             }

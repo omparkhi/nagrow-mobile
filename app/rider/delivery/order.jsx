@@ -5,7 +5,7 @@ import { fetchRiderOrder, updateRiderOrderStatus } from "@/redux/slices/rider/ri
 import AppText from "@/components/AppText";
 import DeliveryRouteMap from "@/app/map/DeliveryRouteMap";
 import { getSocket } from "@/services/connectSocket";
-import { saveLastRiderLocation } from "@/redux/slices/rider/riderLocationSlice";
+import { clearLastRiderLocation, saveLastRiderLocation } from "@/redux/slices/rider/riderLocationSlice";
 import { useHeaderVisibility } from "@/app/context/HeaderVisibilityContext";
 import TestMap from "@/assets/test-map.png";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
@@ -16,10 +16,21 @@ import LottieView from "lottie-react-native";
 import SlideToAct from "../slide-button";
 import Profile from "@/assets/Profile.json";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import ETAInfoCard from "../ETAInfoCard";
+import { resetMapState } from "@/redux/slices/map/mapSlice";
+import CashCollectPopup from "./cashCollect";
+import DeliverySuccessModal from "./DeliverySuccessModal";
+import { useRouter } from "expo-router";
+import { playDeliverySuccessSound } from "@/hooks/notification";
+import NoLiveOrder from "@/assets/Empty-Cart.json";
 
 export default function DeliveryOrderPage () {
+  const router = useRouter();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [popup, setPopup] = useState(false);
+  const { lastLocation } = useSelector((state) => state.riderLocation);
   const sheetRef = useRef(null);
-  const snapPoints = useMemo(() => ["50%","75%", "85%", "100%"], []);
+  const snapPoints = useMemo(() => ["45%","75%", "85%", "100%"], []);
   const { setVisible } = useHeaderVisibility();
   useEffect(() => {
     setVisible(false);     // Hide header
@@ -33,9 +44,10 @@ export default function DeliveryOrderPage () {
     const orderId = rider?.currentOrderId;
   
   const { order, loading } = useSelector((state) => state.riderOrder);
+  const { eta, remainingMeters } = useSelector((state) => state.mapState);
     // useEffect(() => {
     //     // console.log("rider:", rider);
-    //     console.log("order:", order);
+    //     console.log("orderTd:", orderId);
     // });
   useEffect(() => {
     dispatch(fetchRiderOrder(orderId));
@@ -52,7 +64,7 @@ useEffect(() => {
   const socket = getSocket();
   const handler = (data) => {
     const coords = data.coords ?? data;
-    // console.log("coords from backend socket:", coords);
+    console.log("coords from backend socket for rider:", coords);
     if (!order) return;
     // const heading = prevLocation ? calculateHeading(prevLocation, coords) : 0;
 
@@ -68,26 +80,81 @@ useEffect(() => {
   socket.on("rider:location", handler);
 
   return () => socket.off("rider:location", handler);
-}, [order, prevLocation, dispatch]);
+}, [dispatch]);
 
+
+// 4. ✅ FORCE REFRESH ON STATUS CHANGE
+  // This ensures the map recalculates route when status flips (e.g., 'preparing' -> 'ready')
+  useEffect(() => {
+    if(order?._id) {
+        // This log confirms the page detected the Redux change from the Socket
+        console.log("♻️ Page Refreshed for Status:", order.status);
+    }
+  }, [order?.status]);
 
   const handlecall = (phone) => {
     Linking.openURL(`tel:${phone}`);
   };
 
+
   if (loading || !order)
-    return (
+    return ( 
+    <>
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={{ padding: 15 }}
+      >
+        <Ionicons name="arrow-back" size={25} color="#000000ff" />
+      </TouchableOpacity>
       <View style={styles.center}>
         {/* <ActivityIndicator size="large" /> */}
+        <LottieView
+          source={NoLiveOrder}
+          autoPlay
+          loop={true}
+          style={{ width: 150, height: 150}}
+        />
         <AppText>No active order</AppText>
       </View>
+    </>
     );
 
-
+  const processUpdate = (status) => {
+    console.log("Status changing to:", status);
+    dispatch(updateRiderOrderStatus({ 
+      orderId: order._id, 
+      riderId: riderId, 
+      status
+    }));
+    if (status === "delivered") {
+      playDeliverySuccessSound();
+      setShowSuccess(true);
+      // We do NOT resetMapState() here. We wait for "Next Order" button.
+    }
+  }
 
   const handleUpdate = (status) => {
-    console.log("Status changed")
-    dispatch(updateRiderOrderStatus({ id: order._id, riderId: riderId, status }));
+    if (status === "delivered") {
+      const isCOD = order?.paymentType === "cod"
+      const isPending = order?.paymentStatus === "pending";
+
+      // If COD and Not Paid -> Show Popup
+      if (isCOD && isPending) {
+        setPopup(true);
+        return; // Stop here, wait for popup action
+      }
+
+    }
+      // Otherwise proceed normally
+      processUpdate(status);
+    
+  };
+
+  const handleFinishDelivery = () => {
+      setShowSuccess(false); // Close modal
+      dispatch(clearLastRiderLocation());
+      dispatch(resetMapState()); // Clear map
+      router.replace("/rider/dashboard/dash"); // Go to dashboard to find new orders
   };
 
   // DYNAMIC BUTTON STATES
@@ -126,34 +193,43 @@ useEffect(() => {
   const restaurantLocation = { 
     lat: order?.restaurantId?.address?.location?.coordinates[1], 
     lng: order?.restaurantId?.address?.location?.coordinates[0] 
-  }
+  };
+
   const riderLocation = riderCoords
     ? { lat: riderCoords.lat, lng: riderCoords.lng, heading: riderCoords.heading }
     : null; 
 
   const deliveryLocation = { lat: order?.deliveryAddress?.coordinates[1], lng: order?.deliveryAddress?.coordinates[0] }
-  const destination = ["pick_up_by_rider", "on the way", "delivered"].includes(order.status)
-    ? deliveryLocation
-    : restaurantLocation;
+  // const destination = ["pick_up_by_rider", "on the way", "delivered"].includes(order.status)
+  //   ? deliveryLocation
+  //   : restaurantLocation;
 
     const totalItems = order.items.reduce((acc, item) => acc + item.quantity, 0);
 
 
   return (
     < >
-{/* 
+
     { riderLocation ?
         <DeliveryRouteMap
-        origin={riderLocation}
-        destination={destination}
+        origin={restaurantLocation}
+        destination={deliveryLocation}
         riderLocation={riderLocation}
+        order={order}
       />
       
     : <View style={{ top: "25%" }}> <ActivityIndicator size="large" /> </View>
     
-    } */}
-
-    <Image source={TestMap} style={{ height: "100%", width:"100%", position: "absolute" }}/>
+    }
+    
+        <View style={{ top: -150}}>
+      <ETAInfoCard
+        title="Arriving in.."
+        etaMinutes={eta}
+        remainingMeters={remainingMeters}
+      />
+    </View>
+    {/* <Image source={TestMap} style={{ height: "100%", width:"100%", position: "absolute" }}/> */}
     <BottomSheet
       // style={styles.container}
       ref={sheetRef}
@@ -162,7 +238,9 @@ useEffect(() => {
       index={0}  // start collapsed
       backgroundStyle={{ backgroundColor: "#f8f8f8d4" }}
     >
+
     <BottomSheetScrollView style={styles.container}>
+
       <View style={styles.scrollContent}>
         <View style={styles.trackingCard}>
           <View style={{ flexDirection: "row", alignItems: "center"}} >
@@ -177,7 +255,7 @@ useEffect(() => {
             <View style={{ flexDirection: "column", marginLeft: 10 }}>
               <AppText variant="small" style={{ fontSize: 15, color: "#0f172a" }}>PICK ORDER FROM RESTAURANT</AppText>
               {/* <AppText variant="light" style={{ fontSize: 12 }}>Comming within 30 min</AppText> */}
-              <AppText variant="small" style={styles.heading}>Order No. {order.orderId}</AppText>
+              <AppText variant="small" style={styles.heading}>Order No. {order.orderNo}</AppText>
             </View>            
           </View >
         </View>
@@ -245,7 +323,7 @@ useEffect(() => {
               </View>
 
               </View>
-            {/* </View>             */}
+            {/* </View>*/}
           </View >
         </View>
 
@@ -305,6 +383,26 @@ useEffect(() => {
       <View style={styles.stickySlideButton}>
         {renderSlideAction()}
       </View>
+
+      {/* RENDER POPUP HERE */}
+      <CashCollectPopup 
+        visible={popup} 
+        onClose={() => setPopup(false)} 
+        totalAmount={order?.totalAmount} 
+        statusUpdate={() => {
+            setPopup(false); // Close popup
+            processUpdate("delivered"); // Trigger API
+        }} 
+      />
+
+       {/* delivery success modal */}
+       <DeliverySuccessModal
+        visible={showSuccess}
+        earnings={order?.deliveryFee}
+        distance={order?.distanceKm || 3.5}
+        duration={Math.round(eta)}
+        onHomePress={handleFinishDelivery}
+       />
     </>
   );
 }
@@ -342,7 +440,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f172a",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 80
+    marginLeft: 100
   },
   btnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   trackingCard: {
@@ -364,7 +462,7 @@ const styles = StyleSheet.create({
   },
   stickySlideButton: {
   position: "absolute",
-  bottom: 50, // distance from bottom of BottomSheet
+  bottom: 10, // distance from bottom of BottomSheet
   left: 0,
   right: 0,
   paddingHorizontal: 16,

@@ -1,7 +1,7 @@
 import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import AppText from "@/components/AppText";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import WaitingRider from "@/assets/Waiting.json";
 import New from "@/assets/New.json";
@@ -15,11 +15,15 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import { fetchRiderProfile } from "@/redux/slices/rider/authSlice";
 import { stopShift } from "@/redux/slices/rider/riderTrackingSlice";
-import { playNewOrderSound } from "@/hooks/rest-sound-notification";
+// import { playNewOrderSound } from "@/hooks/rest-sound-notification";
+import { playNewOrderSound } from "@/hooks/notification";
 import { clearDeliveryRequest } from "@/redux/slices/rider/riderDeliverySlice";
 // import MapboxGL from "@rnmapbox/maps";
+import { useToast } from "@/app/ToastContext";
+import { resetMapState } from "@/redux/slices/map/mapSlice";
 
 export default function RiderShiftDashboard() {
+  const { showToast } = useToast();
   const dispatch = useDispatch();
   const router = useRouter();
   const [showPopup, setShowPopup] = useState(false);
@@ -33,12 +37,67 @@ export default function RiderShiftDashboard() {
   const deliveryState = useSelector((state) => state.riderDelivery);
   const deliveryOrder = deliveryState.request;
 
+  // timer state
+  const [timeLeft, setTimeLeft] = useState(0);
+  const timerRef = useRef(null);
+
+  const soundIntervalRef = useRef(null);
+
+  // 1. Handle New Order & Start Timer
+  useEffect(() => {
+    if (deliveryOrder && deliveryState.showModal) {
+      // Use the timeLeft from backend or default to 45s
+      setTimeLeft(deliveryOrder.timeLeft || 45);
+
+      if (soundIntervalRef.current) clearInterval(soundIntervalRef.current);
+      soundIntervalRef.current = setInterval(() => {
+        playNewOrderSound();
+      }, 1200);
+
+      // Clear any existing timer
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      // Start Countdown
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            clearInterval(soundIntervalRef.current)
+            handleAutoTimeout(); // ⚡ Trigger auto-close logic
+            return 0;
+          }
+          return prev - 1;
+        })
+      }, 1000)
+    } else {
+      // Cleanup if modal closes
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (soundIntervalRef.current) clearInterval(soundIntervalRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [deliveryOrder, deliveryState.showModal]);
+
+  // Auto Timeout Logic (Frontend side)
+  const handleAutoTimeout = () => {
+    // Ideally, we just clear the request locally. 
+    // The Backend Janitor will handle the actual penalty/reassignment.
+    Alert.alert("Timeout", "You missed the order.");
+    dispatch(clearDeliveryRequest());
+  }
+
     const handleStopShift = async () => {
       const res = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/rider/stop/shift`, { riderId });
       console.log(res.data)
       dispatch(stopShift());
       dispatch(clearDeliveryRequest());
       dispatch(fetchRiderProfile());
+      // playNewOrderSound();
+      // dispatch(resetMapState());
+      // // dispatch(reset)
+      // showToast(`NAGROW-12543573`, "Your Order is placed succesfully");
     };
 
 
@@ -91,14 +150,14 @@ const handleAcceptDelivery = async () => {
   try {
     const res = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/rider/order/response`, {
       riderId: rider._id,
-      orderId: deliveryOrder.id,
+      orderId: deliveryOrder.orderId,
       action: "accept",
     });
     
     const socket = getSocket();
     socket.emit("delivery:accepted", {
       riderId: rider._id,
-      orderId: deliveryOrder.orderId,
+      orderNo: deliveryOrder.orderNo,
     });
 
     // Alert.alert("Order Accepted");
@@ -128,6 +187,9 @@ const handleRejectDelivery = async () => {
   }
 }
 
+// Helper for Timer Color
+  const isUrgent = timeLeft < 10;
+
 
   return (
     <View style={styles.container}>
@@ -146,12 +208,28 @@ const handleRejectDelivery = async () => {
       </View>
 
       {showPopup && (
-        <StartDeliveryPopup visible={showPopup} onClose={() => setShowPopup(false)} onConfirm={handleAcceptDelivery} />
+        <StartDeliveryPopup 
+          visible={showPopup} 
+          onClose={() => setShowPopup(false)} 
+          onConfirm={handleAcceptDelivery}
+        />
       )}
 
       {/* INCOMING ORDERS */}
       <View style={styles.card}>
-        <AppText variant="small" style={styles.sectionTitle}>Incoming Orders</AppText>
+        <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
+             <AppText variant="small" style={styles.sectionTitle}>Incoming Orders</AppText>
+             {/* 🕒 VISUAL TIMER INDICATOR */}
+
+             {deliveryState.showModal && (
+                 <View style={[styles.timerBadge, { backgroundColor: timeLeft < 10 ? '#fee2e2' : '#e0f2fe' }]}>
+                    <MaterialIcons name="access-time" size={16} color={isUrgent ? "#ef4444" : "#0284c7"} style={{marginRight: 4}} />
+                     <AppText style={[styles.timerText, { color: timeLeft < 10 ? '#ef4444' : '#0284c7' }]}>
+                        00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+                     </AppText>
+                 </View>
+             )}
+        </View>
 
         {deliveryState.showModal && deliveryOrder ?  (
         <View style={styles.emptySection}>
@@ -165,7 +243,7 @@ const handleRejectDelivery = async () => {
             />
           </View>
           {/* <AppText variant="small" style={styles.emptyText}>New Delivery</AppText> */}
-          <AppText variant="small" style={{fontSize: 16, color: "#64748b"}}>Order ID: {deliveryOrder.orderId}</AppText>
+          <AppText variant="small" style={{fontSize: 16, color: "#64748b"}}>Order No: {deliveryOrder.orderNo}</AppText>
           <AppText variant="small" style={styles.emptySub}>You have to pick order from <AppText variant="small" style={{ color: "#64748b", fontSize: 14}}>{deliveryOrder.restaurantName.toUpperCase()}</AppText></AppText>
           <AppText variant="small" style={styles.emptySub}>Amount: ₹{deliveryOrder.amount}</AppText>
 
@@ -219,11 +297,11 @@ const handleRejectDelivery = async () => {
           <AppText variant="small" style={styles.statValue}>0</AppText>
         </View>
       </View>
-      <LogoutButton/>
+      {/* <LogoutButton/> */}
 
       <TouchableOpacity
                 style={{
-                    width: "60%",
+                    width: "100%",
                     // marginTop: 20,
                     backgroundColor: "#0f172a",
                     paddingVertical: 13,
@@ -361,4 +439,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+  timerBadge: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10
+  },
+  timerText: {
+      fontSize: 14,
+  }
 });

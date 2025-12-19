@@ -12,6 +12,7 @@ import LogoutButton from "../../restaurant/dashboard/logout-button";
 import { useRouter } from "expo-router";
 import { DefaultTheme } from "@react-navigation/native";
 import NagrowToast from "@/app/toast/NagrowToast";
+import RootWrapper from "@/app/rootWrapper";
 
 
 export default function UserDash() {
@@ -33,6 +34,7 @@ export default function UserDash() {
 
   console.log("DefaultTheme:", DefaultTheme);
     return (
+      
     <ScrollView style={{ flex: 1, backgroundColor: "#fff" }} stickyHeaderIndices={[1]} >
       {/* <View style={{ position: "absolute" }}> */}
         {/* <NagrowToast/> */}
@@ -48,13 +50,14 @@ export default function UserDash() {
       {/* <AppText style={styles.text}>Order</AppText> */}
 
     </TouchableOpacity>
-    <TouchableOpacity style={styles.btn} onPress={() => router.push(`/user/order/${"693299990396c3f7f3cf6ae8"}`)}>
+    <TouchableOpacity style={styles.btn} onPress={() => router.push(`/user/order/${"6945693fd9cdd4ec0569c435"}`)}>
         <AppText >Order</AppText>
       </TouchableOpacity>
         <Restaurant />
         
         
     </ScrollView>
+    // </RootWrapper>
 )
 }
 

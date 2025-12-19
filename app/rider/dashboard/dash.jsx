@@ -14,6 +14,7 @@ import { useSelector, useDispatch } from "react-redux";
 import RiderShiftDashboard from "./rider-shift";
 import { stopShift } from "@/redux/slices/rider/riderTrackingSlice";
 import { fetchRiderProfile } from "@/redux/slices/rider/authSlice";
+import NagrowToast from "@/app/toast/NagrowToast";
 
 export default function RiderDash () {
   const dispatch = useDispatch();
@@ -29,6 +30,7 @@ export default function RiderDash () {
 
     return (
     <View style={{ height: "100%", backgroundColor: "#fff" }}>
+      {/* <NagrowToast/> */}
     {/* <Stats/> */}
     {rider?.isOnline ? <RiderShiftDashboard/> : <StartShiftModal/>}
       <LogoutButton/>

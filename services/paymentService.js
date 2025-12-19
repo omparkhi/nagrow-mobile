@@ -22,6 +22,7 @@ export default function usePayment ({ cart, user, restaurantId, userId, setBacke
                     fullAddress: selectedAddress.fullAddress,
                     coordinates: selectedAddress.coordinates.coordinates,
                 },
+                // grandTotal
             };
 
             const { data } = await axios.post(
@@ -34,8 +35,11 @@ export default function usePayment ({ cart, user, restaurantId, userId, setBacke
              // Step 3: add totalAmount NOW
             const finalCartData = {
                 ...cartData,
-                totalAmount
+                totalAmount,
+                subTotal
             };
+
+            console.log("total amount in razorpay: ", totalAmount)
 
             setBackendTotals({
                 totalAmount,
@@ -48,9 +52,9 @@ export default function usePayment ({ cart, user, restaurantId, userId, setBacke
             router.push({
                 pathname: "/payment/razorpay-webview",
                 params: {
-                    order_Id: order.id,
-                    orderId: order.orderId,
-                    amount: order.amount,
+                    orderId: order.id,
+                    orderNo: order.orderNo,
+                    amount: totalAmount ,
                     userName: user.name,
                     userEmail: user.email,
                     userPhone: user.phone,
@@ -137,7 +141,7 @@ export default function usePayment ({ cart, user, restaurantId, userId, setBacke
                     pathname: `/user/order/${codOrder.data.order._id}`, 
                     params: {
                         // id: codOrder.data.order._id,
-                        orderId: codOrder.data.order.orderId,
+                        orderNo: codOrder.data.order.orderNo,
                         paymentType: "cod",
                         distanceKm: codOrder.data.order.distanceKm,
                         totalAmount: codOrder.data.order.totalAmount,

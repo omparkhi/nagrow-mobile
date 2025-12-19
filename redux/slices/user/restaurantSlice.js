@@ -4,10 +4,16 @@ import axios from "axios";
 
 export const fetchRestaurants = createAsyncThunk(
     "restaurants/fetchRestaurants",
-    async (_, thunkAPI) => {
+    async (coords = {}, thunkAPI) => {
         // console.log("API URL:", process.env.EXPO_PUBLIC_API_URL);
         try {
-            const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/restaurants/home`);
+            // Build URL: /api/restaurants?lat=20.5&lng=78.8
+            let url = `${process.env.EXPO_PUBLIC_API_URL}/api/user/restaurant/home`
+            if (coords.lat && coords.lng) {
+                url += `?lat=${coords.lat}&lng=${coords.lng}`;
+            }
+
+            const res = await axios.get(url);
             return res.data.restaurants;
         } catch (err) {
             return thunkAPI.rejectWithValue(err.response?.data?.message || "failed to fetch restaurant");
@@ -19,7 +25,7 @@ export const fetchRestaurantById = createAsyncThunk(
     "restaurant/fetchRestaurantById",
     async (id, thunkAPI) => {
         try {
-            const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/restaurants/${id}`);
+            const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/user/restaurant/${id}`);
             console.log("API Response:", res.data);
             return res.data;
         } catch (err) {

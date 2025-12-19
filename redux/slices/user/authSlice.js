@@ -9,7 +9,7 @@
         "auth/loginUser",
         async (formData, { rejectWithValue }) => {
             try {
-                const res = await axios.post(`${API_BASE}/api/users/login`, formData);
+                const res = await axios.post(`${API_BASE}/api/user/login`, formData);
 
                 if (!res.data.success) {
                     return rejectWithValue(res.data.message);
@@ -36,7 +36,7 @@
         "auth/signupUser",
         async (formData, { rejectWithValue }) => {
             try {
-                const res = await axios.post(`${API_BASE}/api/users/register`, formData);
+                const res = await axios.post(`${API_BASE}/api/user/register`, formData);
 
                 if (!res.data.success) {
                     return rejectWithValue(res.data.message);
@@ -68,7 +68,7 @@
 
                 axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-                const res = await axios.get(`${API_BASE}/api/users/profile/${userId}`);
+                const res = await axios.get(`${API_BASE}/api/user/profile/${userId}`);
 
                 if (!res.data.success) {
                     return rejectWithValue("Failed to fetch user");

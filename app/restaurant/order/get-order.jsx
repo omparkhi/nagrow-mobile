@@ -79,7 +79,7 @@ export default function GetOrder() {
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
               <AppText variant="small" >
-                Order #{item.orderId}
+                Order - {item.orderNo}
               </AppText>
 
               <View

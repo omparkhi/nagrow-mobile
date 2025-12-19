@@ -9,7 +9,7 @@ export default function LogoutButton() {
 
   const handleLogout = () => {
     dispatch(logout());
-    router.replace("/rider-login");
+    // router.replace("/rider-login");
   };
 
   return (

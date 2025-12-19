@@ -12,6 +12,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AppText from "@/components/AppText";
 import { logout } from "@/redux/slices/rider/authSlice";
 import { useDispatch } from "react-redux";
+import { HistoryIcon } from "lucide-react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -39,14 +40,19 @@ export default function RiderSidebar({ visible, onClose, navigation }) {
       route: "/rider/dashboard/dash",
     },
     {
-      label: "My Orders",
+      label: "Live Order",
       icon: <Ionicons name="receipt-outline" size={22} color="#fff" />,
       route: "/rider/delivery/order",
     },
     {
+      label: "History",
+      icon: <HistoryIcon size={22} color="#fff" />,
+      route: "/rider/history/page",
+    },
+    {
       label: "Earnings",
       icon: <MaterialIcons name="payments" size={22} color="#fff" />,
-      route: "/rider-earnings",
+      route: "/rider/earning/page",
     },
     {
       label: "Settings",

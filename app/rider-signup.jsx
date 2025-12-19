@@ -68,11 +68,11 @@ export default function UserSignup() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {loading && (
+      {/* {loading && (
         <View style={styles.loaderOverlay}>
           <ActivityIndicator size="large" color="#ff5733" />
         </View>
-      )}
+      )} */}
 
       {/* Header */}
       <View style={styles.header}>

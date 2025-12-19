@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import { View, Animated, StyleSheet } from "react-native";
-import NagrowToast from "./toast/NagrowToast";
+import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import { Animated, StyleSheet, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context"; // CRITICAL IMPORT
+import NagrowToast from "./toast/NagrowToast"; // Adjust path
 
 const ToastContext = createContext();
 
@@ -8,27 +9,37 @@ export const useToast = () => useContext(ToastContext);
 
 export const ToastProvider = ({ children }) => {
   const [toast, setToast] = useState(null);
-  const [animation] = useState(new Animated.Value(0));
+  // Using useRef ensures the animation value persists correctly across renders
+  const animation = useRef(new Animated.Value(0)).current; 
+  const insets = useSafeAreaInsets(); // Get dynamic notch height
 
-  const showToast = useCallback((text1, text2, duration = 8000) => {
-    setToast({ text1, text2 });
+  const showToast = useCallback((text1, text2, action = null, duration = 4000) => {
+    setToast({ text1, text2, action });
 
-    // Animate in
-    Animated.timing(animation, {
+    // 1. Spring Animation (Bouncy effect like Swiggy)
+    Animated.spring(animation, {
       toValue: 1,
-      duration: 300,
+      friction: 8, // Controls the "bounciness"
+      tension: 40, // Controls the speed
       useNativeDriver: true,
     }).start();
 
-    // Auto hide
+    // 2. Auto Hide
     setTimeout(() => {
-      Animated.timing(animation, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => setToast(null));
+      hideToast();
     }, duration);
   }, []);
+
+  const hideToast = () => {
+    Animated.timing(animation, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setToast(null));
+  };
+
+  // Calculate top padding based on device (Notch vs No Notch)
+  const topPadding = Platform.OS === 'ios' ? insets.top + 10 : 0;
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -38,18 +49,27 @@ export const ToastProvider = ({ children }) => {
           style={[
             styles.toastContainer,
             {
+              top: topPadding, // Dynamic top position
               transform: [
                 {
                   translateY: animation.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [-100, 50], // slide from top
+                    outputRange: [-150, 0], // Starts 150px above its final position
                   }),
                 },
               ],
+              opacity: animation, // Fade in effect combined with slide
             },
           ]}
         >
-          <NagrowToast text1={toast.text1} text2={toast.text2} />
+          <NagrowToast 
+            text1={toast.text1} 
+            text2={toast.text2} 
+            onPress={() => {
+                if (toast.action) toast.action();
+                hideToast(); // Close toast on click
+            }}
+          />
         </Animated.View>
       )}
     </ToastContext.Provider>
@@ -59,9 +79,9 @@ export const ToastProvider = ({ children }) => {
 const styles = StyleSheet.create({
   toastContainer: {
     position: "absolute",
-    top: 0,
-    width: "100%",
-    alignItems: "center",
-    zIndex: 9999,
+    left: 0,
+    right: 0,
+    zIndex: 9999, // Ensures it sits above everything
+    elevation: 10, // Android z-index equivalent
   },
 });

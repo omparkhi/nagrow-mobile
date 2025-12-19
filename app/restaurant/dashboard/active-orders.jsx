@@ -1,8 +1,10 @@
 import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import AppText from "@/components/AppText";
+import { useRouter } from "expo-router";
 
 export default function ActiveOrders({ activeOrders = [] }) {
+  const router = useRouter();
   if (!activeOrders.length) {
     return (
       <View
@@ -38,6 +40,7 @@ export default function ActiveOrders({ activeOrders = [] }) {
 
       {activeOrders.map((o) => (
         <TouchableOpacity
+        onPress={() => router.push(`/restaurant/order/${o._id}`)}
           key={o._id}
           style={{
             flexDirection: "row",
@@ -47,7 +50,7 @@ export default function ActiveOrders({ activeOrders = [] }) {
           }}
         >
           <AppText variant="small" style={{ fontSize: 14, color: "#5b5959ff" }}>
-            Order #{o.orderId}
+            Order - {o.orderNo}
           </AppText>
 
           <AppText variant="small" style={{ fontSize: 14, color: "#5b5959ff" }}>

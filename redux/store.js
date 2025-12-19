@@ -7,6 +7,7 @@ import addressReducer from "./slices/user/addressSlice";
 import loginReducer from "./slices/user/loginSlice";
 import cartReducer from "./slices/cart/cartSlice";
 import authReducer from "./slices/user/authSlice";
+import userOrderReducer from "./slices/user/userOrderSlice";
 
 import resAuthReduces from "./slices/restaurant/authSlice"
 import resOrderReducer from "./slices/restaurant/orderSlice";
@@ -20,6 +21,8 @@ import riderLocationReducer from "./slices/rider/riderLocationSlice";
 import mapReducer from "./slices/map/mapSlice";
 
 import riderDeliveryReducer from "./slices/rider/riderDeliverySlice";
+import riderHistoryReducer from "./slices/rider/riderHistorySlice";
+import riderEarningReducer from "./slices/rider/riderEarningSlice";
 
 const rootReducer = combineReducers({
     restaurants: restaurantReducer,
@@ -36,6 +39,9 @@ const rootReducer = combineReducers({
     riderLocation: riderLocationReducer,
     mapState: mapReducer,
     riderDelivery: riderDeliveryReducer,
+    userOrder: userOrderReducer,
+    riderHistory: riderHistoryReducer,
+    riderEarning: riderEarningReducer,
 });
 
 const persistConfig = {
@@ -51,7 +57,10 @@ const persistConfig = {
     "mapState",   // ⬅️ IMPORTANT for your issue
     "cart",            // optional but useful
     "address",         // optional
-    "riderDelivery"
+    "riderDelivery",
+    "userOrder",
+    "riderHistory",
+    "riderEarning",
   ],
 };
 

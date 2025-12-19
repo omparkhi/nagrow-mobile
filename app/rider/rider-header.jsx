@@ -5,9 +5,11 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AppText from "@/components/AppText";
 import { useSelector } from "react-redux";
+import { useRouter } from "expo-router";
 
 
 export default function RiderHeader({ onMenuPress }) {
+  const router = useRouter();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
 const { rider, loading, error } = useSelector(state => state.riderAuth);
@@ -58,7 +60,7 @@ const { rider, loading, error } = useSelector(state => state.riderAuth);
 
         
 
-        <TouchableOpacity style={styles.avatarWrap}>
+        <TouchableOpacity style={styles.avatarWrap} onPress={() => router.push("/rider/profile/page")}>
             <View style={styles.avatarPlaceholder}>
               {/* <Ionicons name="person" size={22} color="#2a3951ff" /> */}
               <MaterialIcons name="account-circle" size={33} color="white" />

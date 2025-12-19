@@ -9,8 +9,10 @@ import Header from "./header";
 import { connectSocket, getSocket } from "@/services/connectSocket";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useToast } from "../ToastContext";
-import { playNewOrderSound } from "@/hooks/rest-sound-notification";
+// import { playNewOrderSound } from "@/hooks/rest-sound-notification";
+import { playNewOrderSound, playOrderUpdateSound } from "@/hooks/notification";
 import { fetchOrderById } from "@/redux/slices/restaurant/orderSlice";
+import { usePushNotification } from "@/hooks/usePushNotification";
 
 export default function RestaurantLayout () {
     const { showToast } = useToast();
@@ -22,6 +24,11 @@ export default function RestaurantLayout () {
         dispatch(fetchResProfile());
     }, []);
 
+    usePushNotification(restaurant?._id, "restaurant");
+
+    // useEffect(() => {
+    //     showToast();
+    // }, []);
     useEffect(() => {
         const initSocket = async () => {
             if (!restaurant?._id) return;
@@ -32,6 +39,7 @@ export default function RestaurantLayout () {
             if (!restaurantId || !userType) return;
 
             const socket = getSocket();
+            if (!socket) return;
 
             // console.log("restaurantId:", restaurantId);
             // console.log("userType:", userType);
@@ -44,7 +52,7 @@ export default function RestaurantLayout () {
             const handleNewOrder = (data) => {
                 console.log("New Order Received:", data);
                 playNewOrderSound();
-                showToast(`Order ${data.orderId}`, "New Order Received");
+                showToast(`Order ${data.orderNo}`, "New Order Received");
                 dispatch(fetchOrderById(data._id));
             };
 
@@ -52,12 +60,20 @@ export default function RestaurantLayout () {
                 playNewOrderSound();
                 console.log("📢 Delivery Accepted by rider", data);
                 // alert(`Rider Assigned`);
-                showToast(`Order ${data.orderId}`,`Rider Assigned`);
-                dispatch(fetchOrderById(data.id)); 
+                showToast(`Order ${data.orderNo}`,`Rider Assigned`);
+                dispatch(fetchOrderById(data.orderId)); 
             };
+            
+            const handleOrderStatus = (data) => {
+                playOrderUpdateSound();
+                console.log("order status:", data);
+                showToast(`Order ${data.orderNo}`,`${data.status === "pick_up_by_rider" ? data.msg : `Your order is now ${data.status}`}`);
+                dispatch(fetchOrderById(data.orderId));
+            }
 
             socket.on("order:new", handleNewOrder);
             socket.on("delivery:accepted", handleDeliveryAccept);
+            socket.on("order:status", handleOrderStatus);
 
             return () => {
                 socket.off("order:new", handleNewOrder);

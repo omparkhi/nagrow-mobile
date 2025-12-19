@@ -12,9 +12,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { connectSocket, getSocket } from "@/services/connectSocket";
 import useRiderLocation from "@/hooks/use-rider-location";
 import { HeaderVisibilityProvider, useHeaderVisibility } from "../context/HeaderVisibilityContext";
-import { playNewOrderSound } from "@/hooks/rest-sound-notification";
 import { setDeliveryRequest } from "@/redux/slices/rider/riderDeliverySlice";
 import { useToast } from "../ToastContext";
+import { fetchRiderOrder } from "@/redux/slices/rider/riderOrderSlice";
+import { setETA } from "@/redux/slices/map/mapSlice";
+import { saveLastRiderLocation } from "@/redux/slices/rider/riderLocationSlice";
+import { playNewOrderSound, playOrderUpdateSound } from "@/hooks/notification";
+import { usePushNotification } from "@/hooks/usePushNotification";
+// import { setETA }
 
 export default function RiderLayout () {
     return (
@@ -36,15 +41,15 @@ function RiderLayoutContent() {
     const riderId = rider?._id;
     const { showToast } = useToast();
 
-    // 1. IMMEDIATE: Load ID from storage (Don't wait for API)
+  // Debugging Log (Add this to see why it fails)
   useEffect(() => {
-    const loadLocalId = async () => {
-        const id = await AsyncStorage.getItem("riderId");
-        if(id) setLocalRiderId(id);
-    };
-    loadLocalId();
-    dispatch(fetchRiderProfile()); // Fetch fresh data in background
-  }, []);
+    console.log("🔋 Tracking Status Check:");
+    console.log("  - Redux isTracking:", isTracking);
+    console.log("  - Rider ID:", activeRiderId);
+    console.log("  - Socket Ready:", socketReady);
+    console.log("  -> HOOK ACTIVE?", canStartTracking);
+  }, [isTracking, activeRiderId, socketReady]);
+    usePushNotification(riderId, "rider");
 
   useEffect(() => {
    console.log("isTracking changed in layout:", isTracking);
@@ -62,11 +67,33 @@ function RiderLayoutContent() {
     console.log("socketReady:", socketReady);
   }, []);
 
-    
     useRiderLocation({ 
       isTracking, // Force true to test, or use `isTracking` from redux if persisted
-      riderId: activeRiderId 
+      riderId: activeRiderId,
   });
+
+      // 1. IMMEDIATE: Load ID from storage (Don't wait for API)
+  useEffect(() => {
+    const loadLocalId = async () => {
+        const id = await AsyncStorage.getItem("riderId");
+        if(id) setLocalRiderId(id);
+    };
+    loadLocalId();
+    dispatch(fetchRiderProfile()); // Fetch fresh data in background
+  }, []);
+
+  // 2. Socket Readiness Check (Keep as is)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const s = getSocket();
+            if (s) {
+                setSocketReady(true);
+                clearInterval(interval);
+            }
+        }, 300);
+        return () => clearInterval(interval);
+    }, []);
+
 
     // useEffect(() => {
     //     dispatch(fetchRiderProfile());
@@ -76,22 +103,10 @@ function RiderLayoutContent() {
     //     console.log("rider info:", rider);
     // }, []);
 
-    useEffect(() => {
-  const interval = setInterval(() => {
-    const s = getSocket();
-    if (s) {
-      setSocketReady(true);
-      clearInterval(interval);
-    }
-  }, 300);
-
-  return () => clearInterval(interval);
-}, []);
-
     // socket
     useEffect(() => {
         const initSocket = async () => {
-            if (!rider?._id) return;
+            if (!activeRiderId) return;
             // const riderId = rider?._id;
                 
                 const riderId = await AsyncStorage.getItem("riderId");
@@ -109,14 +124,14 @@ function RiderLayoutContent() {
 
                 socket.emit("joinRoom", { 
                     roomType: userType, 
-                    roomId: riderId 
+                    roomId: activeRiderId 
                 });
 
 
             }   
 
         initSocket();
-    }, [rider?._id]);
+    }, [activeRiderId, socketReady]);
 
 
     useEffect(() => {
@@ -124,15 +139,57 @@ function RiderLayoutContent() {
 
   const socket = getSocket();
 
+
+
+  const handleEtaUpdate = async (data) => {
+    const eta = {
+      etaMinutes: data.etaMinutes,
+      remainingMeters: data.remainingMeters,
+    }
+    console.log("eta in rider:", eta)
+    dispatch(setETA(eta));
+    // rider location update
+    dispatch(saveLastRiderLocation(data.riderLoc))
+  }
+
+  const handleOrderStatus = async (data) => {
+    console.log("Restaurant mark or ready", data);
+    playOrderUpdateSound();
+    // Check specific status
+            if(data.status === 'ready') {
+                 showToast(`${data.orderNo}`, "Order is Ready for Pickup!");
+            } else {
+                 showToast(`${data.orderNo}`, `Order is ${data.status}`);
+            }
+    dispatch(fetchRiderOrder(data.orderId));
+
+    // 2. ✅ ADD THIS: Fetch Profile to sync 'currentOrderId' and status in riderAuth slice
+        dispatch(fetchRiderProfile());
+  }
+ 
+
+  // eta updates
+  socket.on("order:eta:update", handleEtaUpdate);
+  socket.on("order:status", handleOrderStatus);
+
   socket.on("delivery:request", (data) => {
     playNewOrderSound();
     console.log("📦 New Delivery Request:", data);
-    showToast(`Order ${data.orderId}`, "New Delivery Received");
+    showToast(`Order ${data.orderNo}`, "New Delivery Received");
     dispatch(setDeliveryRequest(data));
   });
 
-  return () => socket.off("delivery:request");
+
+
+// ✅ FIX: Clean up ALL listeners to prevent memory leaks
+        return () => {
+            socket.off("delivery:request");
+            socket.off("order:status");
+            socket.off("order:eta:update"); // Was missing
+        }
 }, [socketReady]);
+
+
     // if (loading || !rider) return <AppText>Loading</AppText>
 
     return (

@@ -21,7 +21,7 @@ export const addMenuItem = createAsyncThunk(
             });
         }
             const res = await axios.post(
-                `${process.env.EXPO_PUBLIC_API_URL}/api/restaurants/menu/add`,
+                `${process.env.EXPO_PUBLIC_API_URL}/api/restaurant/menu/add`,
                 data,
                 { headers: { "Content-Type": "multipart/form-data" } }
             );

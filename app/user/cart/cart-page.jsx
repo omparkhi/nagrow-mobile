@@ -102,10 +102,10 @@ export default function CartPage () {
 
     // delivery fee using distance Matrix api 
     useEffect(() => {
-      if (!userId || !restaurantId) {
-    console.log("Missing IDs => ", { userId, restaurantId });
-    return;
-  }
+  //     if (!userId || !restaurantId) {
+  //   console.log("Missing IDs => ", { userId, restaurantId });
+  //   return;
+  // }
 
       const fetchDelivery = async () => {
         try {
@@ -134,6 +134,7 @@ export default function CartPage () {
       user,
       restaurantId,
       userId,
+      grandTotal,
       setBackendTotals,
       backendTotals,
       selectedAddress,

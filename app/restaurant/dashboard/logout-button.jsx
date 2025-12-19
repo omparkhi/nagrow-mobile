@@ -2,14 +2,21 @@ import { useDispatch } from "react-redux";
 import { logout } from "@/redux/slices/restaurant/authSlice";
 import { useRouter } from "expo-router";
 import { TouchableOpacity, Text } from "react-native";
+import { Play } from "lucide-react-native";
+import { playNewOrderSound } from "@/hooks/rest-sound-notification";
+import { useToast } from "@/app/ToastContext";
 
 export default function LogoutButton() {
+  const { showToast } = useToast();
   const dispatch = useDispatch();
   const router = useRouter();
 
   const handleLogout = () => {
     dispatch(logout());
-    router.replace("/restaurant-login");
+    // router.replace("/restaurant-login");
+    // playNewOrderSound();
+    // showToast(`NAGROW-12543573`, "Your Order is placed succesfully");
+    
   };
 
   return (

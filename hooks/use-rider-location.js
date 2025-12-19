@@ -3,13 +3,26 @@ import * as Location from "expo-location";
 import { Alert } from "react-native";
 import axios from "axios";
 import { getSocket } from "@/services/connectSocket";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { saveLastRiderLocation } from "@/redux/slices/rider/riderLocationSlice";
 import { smartProcess, makeSimpleKalman } from "@/utils/trackingUtils";
+import { fetchRiderProfile } from "@/redux/slices/rider/authSlice";
 
 export default function useRiderLocation({ isTracking, riderId }) {
+  const { rider } = useSelector(state => state.riderAuth);
+  const orderIdRef = useRef(rider?.currentOrderId);
+  // const orderId = rider?.currentOrderId;
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    orderIdRef.current = rider?.currentOrderId;
+    console.log("🔄 Tracking Hook: Order ID updated to:", orderIdRef.current);
+  }, [rider?.currentOrderId]);
   
+  useEffect(() => {
+    fetchRiderProfile();
+  }, []);
+
   // Refs to hold state without causing re-renders
   const kalmanInstanceRef = useRef(makeSimpleKalman(0.001, 1.5));
   const trackerStateRef = useRef({
@@ -37,10 +50,12 @@ export default function useRiderLocation({ isTracking, riderId }) {
   const processAndEmit = async (rawLat, rawLng) => {
     // 1. Basic Jitter Filter
     const raw = { lat: rawLat, lng: rawLng, timestamp: Date.now() };
-    if (trackerStateRef.current.lastRaw) {
-      const tiny = haversineDistance(trackerStateRef.current.lastRaw, raw);
-      if (tiny < 1.5) return; // Ignore movements < 1.5m
-    }
+    // if (trackerStateRef.current.lastRaw) {
+    //   const tiny = haversineDistance(trackerStateRef.current.lastRaw, raw);
+    //   if (tiny < 1.5) 
+    //     console.log("jitter ignore") 
+    //   return; // Ignore movements < 1.5m
+    // }
 
     // 2. Smart Process (Kalman + Snapping)
     const { uiFrames, emitPoint, newState } = smartProcess({
@@ -57,27 +72,36 @@ export default function useRiderLocation({ isTracking, riderId }) {
       const socket = getSocket();
       // Only emit if we have a riderId and socket is connected
       if (riderId && socket && socket.connected) {
+        // console.log("📍 coords Emitted");
+
+        const currentActiveOrderId = orderIdRef.current;
+
         socket.emit("rider:location", {
           riderId,
           coords: { lat: emitPoint.lat, lng: emitPoint.lng },
+          orderId: currentActiveOrderId,
         });
-        console.log("📍 Emitted:", emitPoint.lat, emitPoint.lng);
+        // console.log("🔥 EMITTED ORDER ID:", orderId);
+        // console.log("🔥 EMITTED riderId:", riderId);
+        // console.log("📍 Emitted:", emitPoint.lat, emitPoint.lng);
       }
     } catch (e) {
       console.log("Socket emit error:", e.message);
     }
 
-    //  API call
-    try {
-        const res = await axios.post(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/rider/update/location`,
-            { riderId, coords: emitPoint }
-        );
-        //   console.log(res.data);
-         console.log("API SUCCESS:", res.data);
-    } catch (err) {
-        console.log("API error:", err.message);
-    }
+    // //  API call
+    // try {
+
+    //     const res = await axios.post(
+    //         `${process.env.EXPO_PUBLIC_API_URL}/api/rider/update/location`,
+    //         { riderId, coords: emitPoint }
+    //     );
+    //       console.log(res.data);
+    //     //  console.log("API SUCCESS:", res.data);
+    // } catch (err) {
+    //     console.log("API error:", err.message);
+    //     if (err.response) console.log("Server response:", err.response.data);
+    // }
     // 4. Update Redux (for UI)
     dispatch(saveLastRiderLocation({ lat: emitPoint.lat, lng: emitPoint.lng }));
   };
@@ -114,7 +138,7 @@ export default function useRiderLocation({ isTracking, riderId }) {
         {
           accuracy: Location.Accuracy.BestForNavigation,
           timeInterval: 2000, // Reduced to 2s for faster initial updates
-          distanceInterval: 1, 
+          // distanceInterval: 1, 
         },
         (location) => {
           if(!isMounted) return;
@@ -141,7 +165,7 @@ export default function useRiderLocation({ isTracking, riderId }) {
       isMounted = false;
       stopTracking();
     };
-  }, [isTracking, riderId]); // REMOVED riderId from dependency array to prevent restarts
+  }, [isTracking, riderId]);
 
   // We use a ref for riderId inside the processing function so we don't restart the watcher when ID loads
   // However, since processAndEmit uses `riderId` from closure, we actually want it to just be available.

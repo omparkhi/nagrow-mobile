@@ -15,14 +15,31 @@ import ViewOnMapPage from "./user/address/view-map-page";
 import { ToastProvider } from "./ToastContext";
 import { Alert } from "react-native";
 import { getMessaging } from "@react-native-firebase/messaging";
-import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { connectSocket } from "@/services/connectSocket";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
+import messaging from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
 
 SplashScreen.preventAutoHideAsync();
 
+// 1. CONFIGURE NOTIFICATION BEHAVIOR
+// This decides how notifications behave when the app is in Foreground.
+// We set specific settings to allow Socket to take over priority when open.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: false, // FALSE because we use Custom Toast/Socket in foreground
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+// 2. BACKGROUND HANDLER (Keep this outside component)
+messaging().setBackgroundMessageHandler(async remoteMessage => {
+  console.log('Background Notification:', remoteMessage);
+});
+
+// 2. ROOT LAYOUT COMPONENT
 export default function RootLayout() {
   // useEffect(() => {
   //   async function getToken() {
@@ -81,7 +98,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView>
-      <RootWrapper bg="#000" barStyle="light">
+      <RootWrapper bg="#ffffffff" topSafeAreaColor="black" bottomSafeAreaColor="white"  barStyle="light" >
         <Provider store={store}>
           <PersistGate loading={null} persistor={persistor}>
           <ToastProvider>
