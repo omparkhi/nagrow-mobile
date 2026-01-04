@@ -1,7 +1,8 @@
 import React from "react";
-import { View, StyleSheet, Image, Platform, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Image, Platform } from "react-native";
 import NaGrow from "@/assets/NaGrow.png"; 
 import AppText from "@/components/AppText"; 
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 const NagrowToast = ({ 
   text1 = "Order Update", 

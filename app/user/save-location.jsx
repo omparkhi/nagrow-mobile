@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
 import * as Location from "expo-location";
 import LottieView from "lottie-react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -7,6 +7,7 @@ import { saveAddress } from "@/redux/slices/user/addressSlice";
 import AppText from "@/components/AppText";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 export default function SaveLocation() {
     const dispatch = useDispatch();

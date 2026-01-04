@@ -37,6 +37,7 @@ const riderOrderSlice  = createSlice({
     initialState: {
         order: null,
         loading: false,
+        loadingStatus: false,
     },
     extraReducers: (builder) => {
         builder
@@ -49,7 +50,11 @@ const riderOrderSlice  = createSlice({
                 state.order = action.payload;
             })
             // UPDATE ORDER STATUS
+            .addCase(updateRiderOrderStatus.pending, (state) => {
+                state.loadingStatus = true;
+            })
             .addCase(updateRiderOrderStatus.fulfilled, (state, action) => {
+                state.loadingStatus = false;
                 state.order = action.payload;
             });
     }

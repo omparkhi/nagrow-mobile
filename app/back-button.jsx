@@ -1,7 +1,8 @@
 import React from "react";
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet } from "react-native";
 
 export default function HandleBack () {
@@ -12,7 +13,7 @@ export default function HandleBack () {
     return (
         <>
             <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-                <Feather name="arrow-left" size={18} color="#fff" />
+                <Ionicons name="arrow-back" size={25} color="#fff" />
             </TouchableOpacity>
         </>
     )

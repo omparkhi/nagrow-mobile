@@ -1,7 +1,8 @@
 import { useDispatch } from "react-redux";
 import { logout } from "@/redux/slices/rider/authSlice";
 import { useRouter } from "expo-router";
-import { TouchableOpacity, Text } from "react-native";
+import { Text } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 export default function LogoutButton() {
   const dispatch = useDispatch();

@@ -106,6 +106,9 @@
 
                 delete axios.defaults.headers.common["Authorization"];
             },
+            updateUser: (state, action) => {
+                state.user = { ...state.action, ...action.payload };
+            },
         },
 
         extraReducers: (builder) => {
@@ -160,5 +163,5 @@
 
     });
 
-    export const { logout } = authslice.actions;
+    export const { logout, updateUser } = authslice.actions;
     export default authslice.reducer;

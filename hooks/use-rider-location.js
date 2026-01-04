@@ -53,7 +53,7 @@ export default function useRiderLocation({ isTracking, riderId }) {
     // if (trackerStateRef.current.lastRaw) {
     //   const tiny = haversineDistance(trackerStateRef.current.lastRaw, raw);
     //   if (tiny < 1.5) 
-    //     console.log("jitter ignore") 
+    //     // console.log("jitter ignore") 
     //   return; // Ignore movements < 1.5m
     // }
 
@@ -70,9 +70,10 @@ export default function useRiderLocation({ isTracking, riderId }) {
     // 3. Emit to Socket
     try {
       const socket = getSocket();
+      if (!socket || !socket.connected) return;
       // Only emit if we have a riderId and socket is connected
       if (riderId && socket && socket.connected) {
-        // console.log("📍 coords Emitted");
+        console.log("📍 coords Emitted");
 
         const currentActiveOrderId = orderIdRef.current;
 
@@ -137,7 +138,8 @@ export default function useRiderLocation({ isTracking, riderId }) {
       locationWatcher.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 2000, // Reduced to 2s for faster initial updates
+          distanceFilter: 10, // ✅ CRITICAL FIX 1: Only update if moved 10 meters
+          timeInterval: 5000, // Reduced to 2s for faster initial updates
           // distanceInterval: 1, 
         },
         (location) => {

@@ -1,5 +1,6 @@
 import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import { View } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import AppText from "@/components/AppText";
 import { useRouter } from "expo-router";
 

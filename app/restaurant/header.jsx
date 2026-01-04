@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, TouchableOpacity, Animated, StyleSheet, Dimensions, Text } from "react-native";
+import { View, Animated, StyleSheet, Dimensions, Text } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Home, List, ClipboardList, BarChart2, Image, Settings, LogOut } from "lucide-react-native";
 import { useSelector } from "react-redux";
 import AppText from "@/components/AppText";
 import { useRouter } from "expo-router";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 const { width } = Dimensions.get("window");
 const SIDEBAR_WIDTH = 260;

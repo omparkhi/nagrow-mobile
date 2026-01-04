@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   FlatList,
   Modal,
   Alert,
@@ -16,6 +15,7 @@ import {MoreVertical, Edit, MapPin, Trash2, LocateFixed, MapPinPlus, Home } from
 import { Feather } from "@expo/vector-icons";
 import AppText from "@/components/AppText";
 import { useRouter } from "expo-router";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 const AddressCard = () => {
   const navigation = useNavigation();

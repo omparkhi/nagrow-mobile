@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, FlatList } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AppText from "@/components/AppText";
 import { useRouter } from "expo-router";
@@ -50,7 +51,12 @@ export default function PopularMenuInsights({ onAdd, onManage, data = MOCK_MENU_
           <Text style={styles.primaryText}>Add New Item</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryBtn} onPress={onManage}>
+        <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push("/restaurant/menu/CreateAddonScreen")}>
+          <MaterialIcons name="restaurant-menu" size={18} color="#ff5733" />
+          <Text style={styles.secondaryText}>Manage Menu</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push("/restaurant/menu/CreateCategoryScreen")}>
           <MaterialIcons name="restaurant-menu" size={18} color="#ff5733" />
           <Text style={styles.secondaryText}>Manage Menu</Text>
         </TouchableOpacity>
@@ -87,7 +93,7 @@ const styles = StyleSheet.create({
     width: "20%",
     alignItems: "center",
   },
-  ctaRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
+  ctaRow: { flex: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
   primaryBtn: {
     backgroundColor: "#ff5733",
     padding: 12,
@@ -95,7 +101,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    width: "48%",
+    // width: "48%",
     justifyContent: "center",
   },
   primaryText: { color: "#ffffffff", fontSize: 14 },
@@ -107,7 +113,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    width: "48%",
+    // width: "48%",
     justifyContent: "center",
   },
   secondaryText: { color: "#ff5733", fontSize: 14 },

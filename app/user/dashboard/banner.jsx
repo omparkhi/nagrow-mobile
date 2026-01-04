@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, TextInput, StyleSheet, Animated } from "react-native";
+import { View, TextInput, StyleSheet, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import LottieView from "lottie-react-native";
 import AppText from "@/components/AppText";  
@@ -8,6 +8,7 @@ import Foodies from "@/assets/foodies.json";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAddresses } from "@/redux/slices/user/addressSlice";
 import { useRouter } from "expo-router";
+import { TouchableOpacity } from "../../TouchableOpacity";
 
 export default function Banner() {
   const router = useRouter();
@@ -22,13 +23,13 @@ export default function Banner() {
     <>
       {/* Header Gradient */}
       <LinearGradient
-        colors={["#000000", "#141414", "#274563ff"]}
+        colors={["#000000ff", "#151f29ff", "#063b70ff"]}
         style={styles.header}
       >
         {/* Top Bar */}
         <View style={styles.topRow}>
           <View style={{ width: "80%" }}>
-            <TouchableOpacity style={styles.addressWrap} onPress={() => router.push("/user/address/address-card")}>
+            <TouchableOpacity feedback="medium" style={styles.addressWrap} onPress={() => router.push("/user/address/address-card")}>
             <MaterialIcons name="home" size={22} color="white"  />
             <AppText variant="caption" color="white"  style={{ marginLeft: 2 }}>
               Home
@@ -36,7 +37,7 @@ export default function Banner() {
             <Feather name="chevron-down" size={22} color="#ccc" />
             </TouchableOpacity>
 
-            <AppText variant="light" numberOfLines={1} ellipsizeMode="tail" style={styles.addressText}>
+            <AppText numberOfLines={1} ellipsizeMode="tail" style={styles.addressText}>
               {selectedAddress ? selectedAddress.fullAddress : "Fetching location..."}
             </AppText>
           </View>
@@ -45,7 +46,7 @@ export default function Banner() {
 
           
 
-          <TouchableOpacity style={styles.profileIcon}>
+          <TouchableOpacity style={styles.profileIcon} onPress={() => router.push("/user/profile/page")}>
             <Ionicons name="person" size={22} color="#333" />
           </TouchableOpacity>
         </View>
@@ -68,6 +69,8 @@ const styles = StyleSheet.create({
 
   addressText: {
   fontSize: 13  ,
+  fontFamily: "Nunito",
+  lineHeight: 13,
   color: "#a6a2a2ff",
 },
 

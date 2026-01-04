@@ -5,8 +5,8 @@ import {
   StatusBar,
   FlatList,
   ActivityIndicator,
-  TouchableOpacity
 } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchRiderEarnings } from "@/redux/slices/rider/riderEarningSlice";
 import AppText from "@/components/AppText";

@@ -2,11 +2,11 @@ import React from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Modal,
   Platform,
 } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
 import AppText from "@/components/AppText";

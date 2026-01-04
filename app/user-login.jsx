@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "@/redux/slices/user/authSlice";
 import { useRouter } from "expo-router";
 import AppText from "@/components/AppText";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 export default function UserLogin() {
   const dispatch = useDispatch();

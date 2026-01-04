@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { CreditCard, Smartphone, Wallet, BadgeIndianRupee } from "lucide-react-native";
 import AppText from "@/components/AppText";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 export default function PaymentOptions({ method, setMethod, onPayOnline, onPayCOD }) {
   return (
@@ -56,7 +57,7 @@ export default function PaymentOptions({ method, setMethod, onPayOnline, onPayCO
         </TouchableOpacity>
       </TouchableOpacity>
 
-      {/* BUTTONS */}
+      {/* BUTTONS
       <View style={styles.buttonWrapper}>
         {method === "online" ? (
           <TouchableOpacity style={styles.payButton} onPress={onPayOnline}>
@@ -67,7 +68,7 @@ export default function PaymentOptions({ method, setMethod, onPayOnline, onPayCO
             <AppText variant="small" style={styles.payText}>Place COD Order</AppText>
           </TouchableOpacity>
         )}
-      </View>
+      </View> */}
     </View>
   );
 }
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 14,
     borderRadius: 12,
-    marginTop: 12,
+    marginTop: 17,
   },
   heading: {
     fontSize: 13,

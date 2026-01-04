@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, ScrollView, Text, StyleSheet } from "react-native";
+import { View, ScrollView, Text, StyleSheet } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useSelector, useDispatch } from "react-redux";
 // import { fetchResProfile } from "@/redux/slices/restaurant/authSlice";
 import DashboardMetricsRow from "./dash-metrix";
@@ -24,10 +25,8 @@ export default function Dashboard({ navigation }) {
 
 
     useEffect(() => {
-  
-    dispatch(fetchOrder(restaurant._id));
-  
-}, [restaurant]);
+      dispatch(fetchOrder(restaurant?._id));
+    }, [restaurant]);
 
     useEffect(() => {
   console.log(restaurant);
@@ -44,7 +43,7 @@ export default function Dashboard({ navigation }) {
       <NagrowToast/>
       <DashboardMetricsRow/>
       <ActiveOrders activeOrders={active} />
-      <PopularMenuInsights />
+      <PopularMenuInsights  />
       
       <LogoutButton/>
       <LottieView source={LiveOrder} autoPlay loop style={{ marginHorizontal: "auto", width: 250, height: 250 }}/>

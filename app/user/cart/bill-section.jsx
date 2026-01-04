@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, LayoutAnimation, Platform, UIManager, StyleSheet, Animated } from "react-native";
+import { View, Text, LayoutAnimation, Platform, UIManager, StyleSheet, Animated } from "react-native";
 import { Receipt, ChevronRight } from "lucide-react-native";
 import AppText from "@/components/AppText";
 import { useRef } from "react";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 
 // Enable animation for Android
@@ -36,7 +37,7 @@ export default function BillSection({
   });
 
   return (
-    <View style={{ backgroundColor: "white", padding: 16, borderRadius: 12, marginTop: 12 }}>
+    <View style={{ backgroundColor: "white", padding: 16, borderRadius: 12, marginTop: 17 }}>
       {/* Header */}
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ backgroundColor: "#16A34A", padding: 4, borderRadius: 6 }}>
@@ -48,7 +49,7 @@ export default function BillSection({
             <AppText variant="small" style={{  fontSize: 14 }} >
               To Pay ₹{grandTotal}
             </AppText>
-            <AppText variant="small" style={{ fontSize: 12, color: "#6b7280" }}>
+            <AppText variant="small" style={{ fontSize: 12, color: "#16A34A" }}>
               incl. all taxes & charges
             </AppText>
           </View>
@@ -73,28 +74,28 @@ export default function BillSection({
 
           {/* Delivery Fee */}
           <View style={styles.row}>
-            <AppText style={styles.label}>Delivery Fee | {distanceKm} kms</AppText>
-            <AppText style={styles.value}>₹{deliveryFee}</AppText>
+            <AppText variant="small" style={styles.label}>Delivery Fee | {distanceKm} kms</AppText>
+            <AppText variant="small" style={styles.value}>₹{deliveryFee}</AppText>
           </View>
 
           {/* Tip */}
           <View style={[styles.row, { marginTop: 6, borderTopWidth: 1, borderColor: "#656565ff", borderStyle: "dashed"  }]}>
-            <AppText style={[styles.label, { marginTop: 10 }]}>Delivery Tip</AppText>
-            <AppText style={[styles.value, { marginTop: 10, color: "#EA580C" }]}>
+            <AppText variant="small" style={[styles.label, { marginTop: 10 }]}>Delivery Tip</AppText>
+            <AppText variant="small" style={[styles.value, { marginTop: 10, color: "#EA580C" }]}>
               {tip ? `₹${tip}` : "Add tip"}
             </AppText>
           </View>
 
           {/* GST */}
           <View style={styles.row}>
-            <AppText style={styles.label}>GST & Other Charges</AppText>
-            <AppText style={styles.value}>₹0.00</AppText>
+            <AppText variant="small" style={styles.label}>GST & Other Charges</AppText>
+            <AppText variant="small" style={styles.value}>₹0.00</AppText>
           </View>
 
           {/* Grand Total */}
           <View style={[styles.row, { marginTop: 10, borderTopWidth: 1, borderColor: "#656565ff", borderStyle: "dashed", paddingTop: 10 }]}>
-            <AppText style={[styles.label, { color: "#0f172a" }]}>To Pay</AppText>
-            <AppText style={[styles.value, { color: "#0f172a", fontWeight: "bold" }]}>
+            <AppText variant="small" style={[styles.label, { color: "#0f172a" }]}>To Pay</AppText>
+            <AppText variant="small" style={[styles.value, { color: "#0f172a" }]}>
               ₹{grandTotal}
             </AppText>
           </View>
@@ -109,17 +110,17 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
   label: {
     
     fontSize: 14,
     color: "#374151",
-    lineHeight: 15,
+    // lineHeight: 17,
   },
   value: {
     fontSize: 14,
     color: "#374151",
-    lineHeight: 10,
+    // lineHeight: 10,
   },
 });

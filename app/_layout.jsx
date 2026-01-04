@@ -9,7 +9,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "@/redux/store";
 import RootWrapper from "./rootWrapper";
 import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useEffect, useState } from "react";
 import ViewOnMapPage from "./user/address/view-map-page";
 import { ToastProvider } from "./ToastContext";
@@ -20,6 +20,11 @@ import { connectSocket } from "@/services/connectSocket";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
+import { GlobalLoaderProvider } from "./context/GlobalLoaderContext";
+// import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+
+// import { ScrollProvider } from "./NavContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -64,6 +69,7 @@ export default function RootLayout() {
   // }, []);
 
   const [loaded] = useFonts({
+    "Nunito": require("../assets/fonts/Nunito-Regular.ttf"),
     "Nunito-Regular": require("../assets/fonts/Nunito-Bold.ttf"),
     "Nunito-SemiBold": require("../assets/fonts/Nunito-SemiBold.ttf"),
     "Nunito-Bold": require("../assets/fonts/Nunito-Bold.ttf"),
@@ -73,18 +79,17 @@ export default function RootLayout() {
 
   //connect socket at one time 
   useEffect(() => {
-    const initSocket = async() => {
+    const initSocket = async () => {
       const token = await AsyncStorage.getItem("token");
-      if (!token) return;
-
-      const socket = connectSocket(token);
-
-      socket.on("connect", () => {
-        console.log("Global socket connected");
-      });
+      if (token) {
+         // Just call it. The singleton logic ensures we don't duplicate.
+         connectSocket(token);
+      }
     };
-
     initSocket();
+
+    // Cleanup on unmount (optional, but good for full restarts)
+    // return () => disconnectSocket(); 
   }, []);
 
   useEffect(() => {
@@ -96,18 +101,28 @@ export default function RootLayout() {
    if (!loaded) return null;
 
   return (
-    <SafeAreaProvider>
+    <>
+      <GestureHandlerRootView>
+      <BottomSheetModalProvider>
       <GestureHandlerRootView>
       <RootWrapper bg="#ffffffff" topSafeAreaColor="black" bottomSafeAreaColor="white"  barStyle="light" >
         <Provider store={store}>
           <PersistGate loading={null} persistor={persistor}>
           <ToastProvider>
-          <Stack screenOptions={{ headerShown: false }} />
+              <Stack screenOptions={{ 
+                  headerShown: false,
+                  animation: "slide_from_right",
+                  gestureEnabled: true,
+                  gestureDirection: "horizontal"
+                }} 
+              />  
           </ToastProvider>
           </PersistGate>
         </Provider>
       </RootWrapper>
       </GestureHandlerRootView>
-    </SafeAreaProvider>
+      </BottomSheetModalProvider>
+      </GestureHandlerRootView>
+    </>
   );
 } 

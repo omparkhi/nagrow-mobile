@@ -36,7 +36,8 @@ export default function RootWrapper({
       {/* 1. Status Bar Configuration */}
       <StatusBar 
         style={barStyle} 
-        backgroundColor={Platform.OS === 'android' ? topSafeAreaColor : 'transparent'} 
+        backgroundColor="transparent"
+        translucent={true}
       />
 
       {/* 2. Top Safe Area Spacer */}

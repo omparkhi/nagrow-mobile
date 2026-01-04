@@ -1,4 +1,5 @@
-  import { View, Text, TouchableOpacity, Image } from "react-native";
+  import { View, Text, Image } from "react-native";
+  import { TouchableOpacity } from "@/app/TouchableOpacity";
   import MapContainer from "./MapContainer";
   import PlaceAutocompleteInput from "./AutocompleteInput";
   import { useCurrentLocation } from "./useCurrentLocation";

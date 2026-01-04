@@ -3,12 +3,12 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
   ScrollView,
   Alert,
 } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useDispatch, useSelector } from "react-redux";
 import { loginRider } from "@/redux/slices/rider/authSlice";
 import { useRouter } from "expo-router";

@@ -24,6 +24,8 @@ import riderDeliveryReducer from "./slices/rider/riderDeliverySlice";
 import riderHistoryReducer from "./slices/rider/riderHistorySlice";
 import riderEarningReducer from "./slices/rider/riderEarningSlice";
 
+import favoriteReducer from "./slices/user/favoriteSlice";
+
 const rootReducer = combineReducers({
     restaurants: restaurantReducer,
     address: addressReducer,
@@ -42,6 +44,7 @@ const rootReducer = combineReducers({
     userOrder: userOrderReducer,
     riderHistory: riderHistoryReducer,
     riderEarning: riderEarningReducer,
+    favorites: favoriteReducer,
 });
 
 const persistConfig = {
@@ -61,6 +64,7 @@ const persistConfig = {
     "userOrder",
     "riderHistory",
     "riderEarning",
+    "favorites"
   ],
 };
 
@@ -72,6 +76,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
+      immutableCheck: false,
     }),
 });
 

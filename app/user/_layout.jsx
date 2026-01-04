@@ -1,7 +1,7 @@
 // app/user/_layout.jsx
 import { Slot } from "expo-router";
 import ProtectedRoute from "./protectedRoute";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CartSummaryBar from "./cart/cart-bar";
 import { fetchUser } from "@/redux/slices/user/authSlice";
@@ -10,7 +10,8 @@ import { useEffect } from "react";
 import { connectSocket, getSocket } from "@/services/connectSocket";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useToast } from "../ToastContext";
-import { fetchOrderById } from "@/redux/slices/restaurant/orderSlice";
+// import { fetchOrderById } from "@/redux/slices/restaurant/orderSlice";
+import { fetchActiveOrders, fetchOrderById, updateActiveOrderStatus } from "@/redux/slices/user/userOrderSlice";
 import orderSound from "@/assets/notification/order.mp3";
 import { Audio } from "expo-av";
 import {  useRef } from "react";
@@ -21,9 +22,23 @@ import PolylineDecoder from "@mapbox/polyline";
 import { setETA } from "@/redux/slices/map/mapSlice";
 import { saveLastRiderLocation } from "@/redux/slices/rider/riderLocationSlice";
 import { usePushNotification } from "@/hooks/usePushNotification";
+import LiveOrderFloat from "./LiveOrderFloat";
+import UserBottomNav from "./navigation/UserBottomNav";
+import { NavBarVisibilityProvider, useBottomBarVisibility } from "../context/NavBarVisibilityContext";
 
+// import { GlobalLoaderProvider } from "../context/GlobalLoaderContext";
+// import { NavProvider } from "../NavContext";
 
-export default function UserLayout() {
+export default function UserLayout () {
+  return (
+    <NavBarVisibilityProvider>
+      <UserLayoutContent />
+    </NavBarVisibilityProvider>
+  )
+}
+
+function UserLayoutContent() {
+  const { visible } = useBottomBarVisibility();
   const soundRef = useRef(null);
   const { showToast } = useToast();
   const dispatch = useDispatch();
@@ -33,6 +48,8 @@ export default function UserLayout() {
   
   useEffect(() => {
     dispatch(fetchUser());
+    // Fetch ALL active orders on app launch so the list is ready
+    dispatch(fetchActiveOrders());
   }, [dispatch]);
 
 useEffect(() => {
@@ -44,18 +61,16 @@ useEffect(() => {
         console.log("GLOBAL ORDER STATUS:", data);
         playOrderUpdateSound();
         showToast(`Order ${data.orderNo}`, `Your Order is now ${data.status}`);
+        // OPTIMIZATION: Update Redux state directly instead of API call
+        dispatch(updateActiveOrderStatus({
+            orderId: data.orderId,
+            status: data.status,
+            riderId: data.riderId // if available in payload
+        }));
         dispatch(fetchOrderById(data.orderId));
     };
 
-    const handleRouteInit = (data) => {
-        const route = PolylineDecoder.decode(data.polyline).map(([lat, lng]) => ({
-            latitude: lat,
-            longitude: lng,
-        }))
-        console.log("order route init polyline:", route);
-        dispatch(setRouteCache(route));
-        dispatch(setRouteFetched());
-    };
+    
 
     // 3. Init Function
     const initSocket = async () => {
@@ -84,7 +99,6 @@ useEffect(() => {
 
       // Attach Listeners
       // socket.on("order:eta:update", handleEtaUpdate);
-      socket.on("order:route:init", handleRouteInit);
       socket.on("order:status", handleOrderStatus);
     };
 
@@ -96,8 +110,7 @@ useEffect(() => {
       if (socket) {
         console.log("Cleaning up socket listeners...");
         socket.off("order:status", handleOrderStatus);
-        socket.off("order:route:init", handleRouteInit);
-        socket.off("order:eta:update", handleEtaUpdate);
+        // socket.off("order:route:init", handleRouteInit);
       }
     };
 
@@ -107,11 +120,15 @@ useEffect(() => {
 
   return (
     <ProtectedRoute>
-      <SafeAreaView style={styles.cartWrapper}>
-        <CartSummaryBar />
-      </SafeAreaView>
-      <Slot /> 
+        <View style={styles.cartWrapper}>
+          <CartSummaryBar />
+        </View>
+      
+        {/* <LiveOrderFloat/> */}
+        <Slot /> 
        {/* renders /user/index.jsx or /user/profile.jsx */}
+       <UserBottomNav /> 
+      
     </ProtectedRoute>
   );
 }
@@ -119,10 +136,10 @@ useEffect(() => {
 const styles = StyleSheet.create({
   cartWrapper: {
     position: "absolute",
-    bottom: 0,
+    bottom: 0, 
     left: 0,
     right: 0,
-    zIndex: 999,
+    zIndex: 9999,
     alignItems: "center",
   },
 });

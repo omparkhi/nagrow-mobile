@@ -1,11 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, ActivityIndicator } from "react-native";
 import AppText from "@/components/AppText";
 import { useSelector } from "react-redux";
 import Header from "../header";
 import { router } from "expo-router";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
+
 export default function GetOrder() {
   const { list, loadingList } = useSelector((state) => state.orders);
+  
 
 
   if (loadingList) {

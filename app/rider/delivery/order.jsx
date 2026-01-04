@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Linking } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchRiderOrder, updateRiderOrderStatus } from "@/redux/slices/rider/riderOrderSlice";
 import AppText from "@/components/AppText";
@@ -25,12 +26,13 @@ import { playDeliverySuccessSound } from "@/hooks/notification";
 import NoLiveOrder from "@/assets/Empty-Cart.json";
 
 export default function DeliveryOrderPage () {
+  const [minsToPickup, setMinsToPickup] = useState(0);
   const router = useRouter();
   const [showSuccess, setShowSuccess] = useState(false);
   const [popup, setPopup] = useState(false);
   const { lastLocation } = useSelector((state) => state.riderLocation);
   const sheetRef = useRef(null);
-  const snapPoints = useMemo(() => ["45%","75%", "85%", "100%"], []);
+  const snapPoints = useMemo(() => ["40%","75%", "85%", "100%"], []);
   const { setVisible } = useHeaderVisibility();
   useEffect(() => {
     setVisible(false);     // Hide header
@@ -43,7 +45,7 @@ export default function DeliveryOrderPage () {
     const riderId = rider?._id;
     const orderId = rider?.currentOrderId;
   
-  const { order, loading } = useSelector((state) => state.riderOrder);
+  const { order, loading, loadingStatus } = useSelector((state) => state.riderOrder);
   const { eta, remainingMeters } = useSelector((state) => state.mapState);
     // useEffect(() => {
     //     // console.log("rider:", rider);
@@ -96,6 +98,57 @@ useEffect(() => {
     Linking.openURL(`tel:${phone}`);
   };
 
+  // ✅ NEW: Timer Logic (Updates every 30s)
+useEffect(() => {
+  const updatePickupTimer = () => {
+    // Only calculate if we are in the "Pickup" phase
+    if (!order?.targetReadyTime || order.status === "on the way" || order.status === "delivered") return;
+
+    const deadline = new Date(order.targetReadyTime).getTime();
+    const now = Date.now();
+    // Calculate minutes remaining
+    const diff = Math.ceil((deadline - now) / 60000);
+    setMinsToPickup(diff);
+  };
+
+  updatePickupTimer(); // Run immediately
+  const interval = setInterval(updatePickupTimer, 30000);
+  return () => clearInterval(interval);
+}, [order]);
+
+// ✅ NEW: Helper to get color based on urgency
+const getPickupColor = () => {
+    if (minsToPickup <= 0 ) return "#10B981"; // Green (Ready)
+    if (minsToPickup <= 5) return "#F59E0B"; // Orange (Hurry)
+    return "#3B82F6"; // Blue (Plenty of time)
+};
+
+const getPickupText = (status) => {
+    // 1. Kitchen is done
+    if (status === "ready") {
+        return "Food is ready! Head inside to pick up the order.";
+    }
+
+    // 2. Rider just marked 'Picked Up' (Waiting to slide 'Start Delivery')
+    if (status === "pick_up_by_rider") {
+        return "Order collected! Please start the ride.";
+    }
+
+    // 3. Rider is driving to customer
+    if (status === "on the way") {
+        return "You are on the way to the drop location.";
+    }
+
+    // 4. Delivery Complete
+    if (status === "delivered") {
+        return "Great job! Order delivered successfully.";
+    }
+
+    // 5. Default (Cooking Phase)
+    if (minsToPickup <= 0) return "Food should be ready any moment now.";
+    return `Food ready in ~${minsToPickup} mins`;
+};
+
 
   if (loading || !order)
     return ( 
@@ -118,6 +171,8 @@ useEffect(() => {
       </View>
     </>
     );
+
+
 
   const processUpdate = (status) => {
     console.log("Status changing to:", status);
@@ -159,6 +214,14 @@ useEffect(() => {
 
   // DYNAMIC BUTTON STATES
   const renderSlideAction = () => {
+        if (loadingStatus) {
+      return (
+        <View style={styles.loadingContainer}>
+           <ActivityIndicator size="large" color="#000" />
+           <AppText variant="small" style={{ marginTop: 5, color: "#666" }}>Updating...</AppText>
+        </View>
+      )
+    }
   if (order.status === "ready") {
     return (
       <SlideToAct 
@@ -222,7 +285,7 @@ useEffect(() => {
     
     }
     
-        <View style={{ top: -150}}>
+        <View style={{ top: -140}}>
       <ETAInfoCard
         title="Arriving in.."
         etaMinutes={eta}
@@ -243,22 +306,43 @@ useEffect(() => {
 
       <View style={styles.scrollContent}>
         <View style={styles.trackingCard}>
-          <View style={{ flexDirection: "row", alignItems: "center"}} >
-            <View style={{ backgroundColor: "#f8f8f8ff", borderRadius: 10 }}>
-              <LottieView
-                source={DeliveryFood}
-                autoPlay
-                loop
-                style={{ width: 50, height: 50 }}
-              />
+  <View style={{ flexDirection: "column" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderStyle: "dotted", borderBottomColor: "#d7d3d3ff" }}>
+    <View style={{ backgroundColor: "#f8f8f8ff", borderRadius: 10, marginBottom: 5 }}>
+      <LottieView
+        source={DeliveryFood}
+        autoPlay
+        loop
+        style={{ width: 50, height: 50 }}
+      />
+    </View>
+    <View style={{ flexDirection: "column",  marginLeft: 10, }}>
+      <AppText variant="small" style={{ fontSize: 18, color: "#0f172a" }}>
+        ONGOING LIVE ORDER
+      </AppText>
+    <AppText variant="small" style={{ fontSize: 14, color: "#78797cff", marginTop: -3}}>{order?.orderNo}</AppText>
+    </View>
+    </View>
+    <View style={{ flexDirection: "column",   flex: 1 }}>
+      {/* ✅ NEW: Dynamic Pickup Timer (Only show before 'On the Way') */}
+      {["accepted", "preparing", "ready", "pick_up_by_rider"].includes(order.status) && order.targetReadyTime && (
+         <View style={{ flexDirection: 'column', alignItems: "center", marginTop: 4, position: "relative" }}>
+            <View style={{ flexDirection: 'row', position: "absolute" }}>
+              <Ionicons name="time-outline" size={14} color={getPickupColor()} style={{ marginRight: 4 }} />
+            <AppText variant="small" style={{ color: getPickupColor(), fontSize: 13,  }}>
+                {getPickupText(order.status)}
+            </AppText>
             </View>
-            <View style={{ flexDirection: "column", marginLeft: 10 }}>
-              <AppText variant="small" style={{ fontSize: 15, color: "#0f172a" }}>PICK ORDER FROM RESTAURANT</AppText>
-              {/* <AppText variant="light" style={{ fontSize: 12 }}>Comming within 30 min</AppText> */}
-              <AppText variant="small" style={styles.heading}>Order No. {order.orderNo}</AppText>
-            </View>            
-          </View >
-        </View>
+            {/* Optional: Absolute Time */}
+            <AppText variant="small" style={{ color: "#94a3b8", fontSize: 11, marginLeft: 6, marginTop: 17 }}>
+               (Pick Parcel By {new Date(order.targetReadyTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})
+            </AppText>
+         </View>
+      )}
+      
+    </View>
+  </View>
+</View>
 
         {/* <View style={{ flexDirection: "column", alignItems: "center", marginLeft: 10 }}> */}
         {/* <AppText variant="small" style={{ fontSize: 17, color: "#64748b" }}>Pickup the order from Restaurant</AppText> */}
@@ -290,42 +374,59 @@ useEffect(() => {
         <Text>{order.userId.phone}</Text>
       </View> */} 
 
-        <View style={styles.trackingCard}>
-          <View style={{ flexDirection: "row", alignItems: "center", paddingRight: 40}} >
-            <View style={{ width: 40, height: 40, borderRadius: 25, backgroundColor: "#0f172a", justifyContent: "center", alignItems: "center" }} >
-              <MaterialCommunityIcons name="package-variant-closed" size={28} color="#fff" />
-            </View>                    
-            {/* <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 10, }}> */}
-              <View style={{ flexDirection: "column", marginLeft: 10 }}>
-              <AppText variant="small" style={{ fontSize: 15, color: "#0f172a" }}>PACKAGE DETAILS</AppText>
-              <View>
-              
-                {order.items.map((i) => (
-                  <>
-                  <View style={{width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                    <View>
-                      <AppText variant="small" style={{fontSize: 14, color: "#64748b"}} key={i._id}>ITEM : {i.menuItemId.name}</AppText>
-                      <AppText variant="small" style={{fontSize: 14, color: "#64748b"}}>QTY : {i.quantity}</AppText>
-                    </View>
-                    <View style={{ flexDirection: "row", alignItems: "center", padding: 8, backgroundColor: "#0f172a", borderRadius: 10 }}>
-                      <MaterialIcons name="currency-rupee" size={20} color="#ffffffff" />
-                      <AppText variant="small" style={{color: "#ffffffff"}}>{order?.totalAmount}</AppText>
-                    </View>
-                    
-                    
-                  </View>
-                  { order?.paymentStatus === "pending" && order?.paymentType === "cod" && 
-                    <AppText variant="small" style={{ fontSize: 9, top: 10 ,color: "#0f172a"}}>YOU HAVE TO COLLECT PAYMENT OF {order?.totalAmount}</AppText>
-                  } 
-                  </> 
-                ))}
-              
-              </View>
-
-              </View>
-            {/* </View>*/}
-          </View >
+  <View style={styles.trackingCard}>
+    {/* SECTION 1: Header Row (Icon + Title + Price) */}
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: 5, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: "#64748b", borderStyle: "dotted" }}>
+    
+      {/* Left Side: Icon & Label */}
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ width: 40, height: 40, borderRadius: 25, backgroundColor: "#0f172a", justifyContent: "center", alignItems: "center" }}>
+          <MaterialCommunityIcons name="package-variant-closed" size={24} color="#fff" />
         </View>
+        <AppText variant="small" style={{ fontSize: 15, color: "#0f172a", marginLeft: 10 }}>
+          PACKAGE DETAILS
+        </AppText>
+      </View>
+
+      {/* Right Side: Price Badge */}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#0f172a", borderRadius: 8 }}>
+        <MaterialIcons name="currency-rupee" size={16} color="#ffffff" />
+        <AppText variant="small" style={{ color: "#ffffff" }}>
+          {order?.totalAmount}
+        </AppText>
+      </View>
+    </View>
+
+    {/* SECTION 2: Items List (Below the header) */}
+    <View style={{ paddingHorizontal: 4 }}>
+      {order.items.map((i) => (
+        <View key={i._id} style={{ marginBottom: 8, borderBottomWidth: 1, borderBottomColor: "#f1f5f9", paddingBottom: 8 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          
+            {/* Item Name */}
+            <AppText variant="small" style={{ fontSize: 14, color: "#334155", flex: 1 }}>
+              {i.menuItemId.name}
+            </AppText>
+          
+            {/* Quantity */}
+            <AppText variant="small" style={{ fontSize: 14, color: "#64748b" }}>
+              x {i.quantity}
+            </AppText>
+          </View>
+        </View>
+      ))}
+    </View>
+
+    {/* SECTION 3: COD Warning (Bottom) */}
+    {order?.paymentStatus === "pending" && order?.paymentType === "cod" && (
+      <View style={{ marginTop: 4, backgroundColor: "#fffbe6", padding: 8, borderRadius: 6, borderWidth: 1, borderColor: "#ffe58f" }}>
+        <AppText variant="small" style={{ fontSize: 11, color: "#d48806", textAlign: "center" }}>
+          ⚠️ YOU HAVE TO COLLECT PAYMENT OF ₹{order?.totalAmount}
+        </AppText>
+      </View>
+    )}
+
+  </View>
 
               <View style={styles.customerCard}>
           <View style={{ flexDirection: "row", alignItems: "center"}} >
@@ -469,5 +570,17 @@ const styles = StyleSheet.create({
   zIndex: 10,
   alignItems: "center",
 },
+loadingContainer: {
+    height: 60, // Match your SlideToAct height
+    width: "100%", // Match slider width behavior
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 6, // Match slider shadow
+    shadowOpacity: 0.1,
+    flexDirection: "row", // Optional: if you want text next to loader
+    gap: 10
+  }
    // leave space for sticky button
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image, Switch } from "react-native";
+import { View, Text, StyleSheet, FlatList, Image, Switch } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons, Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
@@ -15,6 +15,7 @@ import RiderShiftDashboard from "./rider-shift";
 import { stopShift } from "@/redux/slices/rider/riderTrackingSlice";
 import { fetchRiderProfile } from "@/redux/slices/rider/authSlice";
 import NagrowToast from "@/app/toast/NagrowToast";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 export default function RiderDash () {
   const dispatch = useDispatch();

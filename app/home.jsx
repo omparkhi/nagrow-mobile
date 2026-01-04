@@ -3,7 +3,6 @@ import {
   View,
   Text,
   ImageBackground,
-  TouchableOpacity,
   ScrollView,
   Dimensions,
 } from "react-native";
@@ -16,6 +15,8 @@ import restaurant from "@/assets/restaurant.json";
 import delivery from "@/assets/delivery2.json";
 import rootBg from "@/assets/rootBg.jpeg";
 import AppText from "@/components/AppText";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
+
 
 const { width } = Dimensions.get("window");
 

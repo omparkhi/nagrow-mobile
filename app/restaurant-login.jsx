@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import {
   View,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   Alert,
 } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";

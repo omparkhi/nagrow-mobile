@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import MapView, { Marker, Polyline, AnimatedRegion } from "react-native-maps";
-import { View, Image, TouchableOpacity, Animated, Platform, Easing } from "react-native";
+import { View, Image, Animated, Platform, Easing } from "react-native";
 import PolylineDecoder from "@mapbox/polyline";
 import { defaultMapStyles } from "./mapStyles";
 import { useSelector, useDispatch } from "react-redux";
 import { setRouteFitted, setRouteCache, setRouteFetched } from "@/redux/slices/map/mapSlice";
 import { calBearing } from "@/utils/calBearing";
 import { getSnapToRoadLocation } from "@/utils/snapUtils";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 // CONSTANTS
 const LATITUDE_DELTA = 0.0043;

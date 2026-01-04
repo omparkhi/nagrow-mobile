@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { View, ScrollView, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, Text, FlatList, StyleSheet, ActivityIndicator } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import AppText from "@/components/AppText";
 import Header from "../header";
@@ -8,8 +8,11 @@ import { useLocalSearchParams, useNavigation } from "expo-router";
 import { getSocket } from "@/services/connectSocket";
 // import { playNewOrderSound } from "@/hooks/rest-sound-notification";
 import { useToast } from "@/app/ToastContext";
+import { Ionicons } from "@expo/vector-icons";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 export default function OrderDetails() {
+  const [minsLeft, setMinsLeft] = useState(0);
   const {  showToast } = useToast();
   const navigate = useNavigation();
   const { id } = useLocalSearchParams();
@@ -26,6 +29,38 @@ export default function OrderDetails() {
   useEffect(() => {
     console.log("order in rest:", currentOrder);
   },[]);
+
+  // ✅ NEW: Timer Logic (Updates every 30s)
+  useEffect(() => {
+    const updateTimer = () => {
+      if (!currentOrder?.targetReadyTime) return;
+      
+      const deadline = new Date(currentOrder.targetReadyTime).getTime();
+      const now = Date.now();
+      const diff = Math.ceil((deadline - now) / 60000);
+      
+      setMinsLeft(diff);
+    };
+
+    updateTimer(); // Run immediately
+    const interval = setInterval(updateTimer, 30000);
+    return () => clearInterval(interval);
+  }, [currentOrder]);
+
+  // ✅ NEW: Helper for Badge Colors
+  const getTimerColor = () => {
+    if (minsLeft < 0) return "#D63031"; // Red (Overdue)
+    if (minsLeft <= 5) return "#e67e22"; // Orange (Urgent)
+    return "#27ae60"; // Green (Safe)
+  };
+
+  const getTimerText = () => {
+    if (minsLeft < 0) return `Overdue by ${Math.abs(minsLeft)}m`;
+    if (minsLeft === 0) return "Ready Now";
+    return `${minsLeft}m to Prepare`;
+  };
+
+
   const statusFlow = {
     placed: "accepted",
     accepted: "preparing",
@@ -89,17 +124,32 @@ export default function OrderDetails() {
     <>
     
     <ScrollView style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
-      
-
       <View style={styles.container}>
         {/* Order Info */}
+        {/* Order Info & TIMER */}
         <View style={styles.card}>
-          <AppText variant="small" style={styles.title}>Order #{currentOrder.orderNo}</AppText>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor(currentOrder.status) }]}>
-            <AppText variant="small" style={styles.statusText}>{currentOrder.status.toUpperCase()}</AppText>
+          <View style={{ flexDirection: "column", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <View>
+                 <AppText variant="small" style={styles.title}>Order #{currentOrder.orderNo}</AppText>
+                 <View style={[styles.statusBadge, { backgroundColor: statusColor(currentOrder.status) }]}>
+                    <AppText variant="small" style={styles.statusText}>{currentOrder.status.toUpperCase()}</AppText>
+                 </View>
+              </View>
+
+              {/* ✅ NEW: The Timer Badge */}
+              {["placed", "accepted", "preparing"].includes(currentOrder.status) && (
+                  <View style={{ alignItems: "flex-end", marginTop: 20 }}>
+                      <View style={[styles.timerBadge, { backgroundColor: getTimerColor() }]}>
+                          <Ionicons name="timer-outline" size={16} color="white" style={{ marginRight: 4 }} />
+                          <AppText variant="small" style={styles.timerText}>{getTimerText()}</AppText>
+                      </View>
+                      <AppText variant="small" style={styles.targetTimeText}>
+                        Target: {new Date(currentOrder.targetReadyTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </AppText>
+                  </View>
+              )}
           </View>
         </View>
-
         {/* Items */}
         <View style={styles.card}>
           <AppText variant="small" style={styles.sectionTitle}>Items</AppText>

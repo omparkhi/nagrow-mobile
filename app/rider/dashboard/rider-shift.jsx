@@ -1,4 +1,5 @@
-import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import AppText from "@/components/AppText";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
@@ -297,7 +298,7 @@ const handleRejectDelivery = async () => {
           <AppText variant="small" style={styles.statValue}>0</AppText>
         </View>
       </View>
-      {/* <LogoutButton/> */}
+      <LogoutButton/>
 
       <TouchableOpacity
                 style={{

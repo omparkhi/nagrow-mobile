@@ -3,11 +3,11 @@ import React, { useEffect } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   Animated,
   StyleSheet,
   Dimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AppText from "@/components/AppText";
 import { logout } from "@/redux/slices/rider/authSlice";

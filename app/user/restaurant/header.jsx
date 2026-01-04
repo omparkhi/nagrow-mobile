@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Image, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { View, Image, Text, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import AppText from "@/components/AppText";
@@ -8,9 +8,27 @@ import { Ionicons, MaterialIcons, MaterialCommunityIcons, Feather } from "@expo/
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { ShieldCheck, Hotel } from "lucide-react-native";
 import HandleBack from "@/app/back-button";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
+import RestaurantDietBadge from "./type";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { 
+  interpolate, 
+  useAnimatedStyle, 
+  Extrapolation,
+  interpolateColor 
+} from 'react-native-reanimated';
 
-export default function RestaurantHeader({ restaurant }) {
+export default function RestaurantHeader({ scrollY, restaurant }) {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
+
+    
+
+    const getDietType = (restaurant) => {
+      if (restaurant.isPureVeg) return "veg";
+      return "non-veg";
+    }
 
     // useEffect(() => {
     //   console.log("PAGE PARAM ID:", id);
@@ -23,7 +41,11 @@ export default function RestaurantHeader({ restaurant }) {
 
     return (
         <View style={styles.wrapper}>
-          <HandleBack />
+          {/* <HandleBack /> */}
+          {/* <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}> */}
+            {/* <Ionicons name="arrow-back" size={25} color="#fff" /> */}
+            {/* <Ionicons name="arrow-back" size={24} style={{  color: "#fff" }} /> */}
+          {/* </TouchableOpacity> */}
 
       {/* Main Header Content */}
       <View style={styles.headerContent}>
@@ -62,12 +84,23 @@ export default function RestaurantHeader({ restaurant }) {
           {/* Time + Address */}
           <View style={styles.metaRow}>
             <AppText variant="small" style={styles.metaText}>
-              {restaurant?.deliveryTimeEstimate}
+              {restaurant?.deliveryTimeEstimate} mins
             </AppText>
             <AppText style={styles.metaDivider}>|</AppText>
             <AppText variant="small" style={styles.metaText}>
               {restaurant?.address?.street}
             </AppText>
+          </View>
+
+          <LinearGradient 
+            colors={['#20265cff', 'rgba(255,255,255,0)']} 
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.95, y: 0 }}
+            style={{ width: "100%", height: 1, marginTop: 5 }}
+          ></LinearGradient>
+
+          <View style={{ marginTop: 8 }}>
+            <RestaurantDietBadge type={getDietType(restaurant)} />
           </View>
         </View>
       </View>
@@ -78,17 +111,23 @@ export default function RestaurantHeader({ restaurant }) {
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: "#131222",
-    paddingBottom: 7,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
   },
-
+   backBtn: {
+        position: "absolute",
+        top: 10,
+        left: 10,
+        zIndex: 9999,
+        // padding: 10, 
+  },
  
 
   headerContent: {
     flexDirection: "row",
-    paddingTop: 40,
-    paddingHorizontal: 5,
+    paddingTop: 45,
+    paddingHorizontal: 15,
     alignItems: "center",
     gap: 10,
   },
@@ -105,7 +144,7 @@ const styles = StyleSheet.create({
   infoCard: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 22,
+    borderRadius: 18,
     padding: 10,
   },
 
@@ -132,7 +171,7 @@ const styles = StyleSheet.create({
   },
 
   nameRatingRow: {
-     
+    marginLeft: 5,
     marginTop: 8,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -171,7 +210,7 @@ const styles = StyleSheet.create({
   },
 
   metaRow: {
-    
+    marginLeft: 5,
     flexDirection: "row",
     alignItems: "center",
     marginTop: 6,

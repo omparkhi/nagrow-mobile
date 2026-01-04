@@ -1,6 +1,7 @@
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
+import { View, Text, Modal, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AppText from "@/components/AppText";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 export default function CashCollectPopup({ visible, onClose, totalAmount, statusUpdate }) {
   return (

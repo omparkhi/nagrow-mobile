@@ -1,11 +1,12 @@
 // components/RiderHeader.jsx
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from "react-native";
+import { View, Text, Image, StyleSheet, Platform } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AppText from "@/components/AppText";
 import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 
 export default function RiderHeader({ onMenuPress }) {

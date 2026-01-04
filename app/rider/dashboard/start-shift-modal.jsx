@@ -1,4 +1,5 @@
-import { View, TouchableOpacity } from "react-native";
+import { View } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import LottieView from "lottie-react-native";
 import StartShiftPopup from "./start-shift";
 import { useEffect, useState } from "react";

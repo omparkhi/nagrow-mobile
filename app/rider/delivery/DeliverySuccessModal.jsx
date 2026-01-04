@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Modal, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import { View, Modal, StyleSheet, Dimensions } from "react-native";
 import LottieView from "lottie-react-native";
 import AppText from "@/components/AppText"; // Your text component
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 const { width } = Dimensions.get("window");
 

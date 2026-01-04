@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Modal, Image, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Alert, Modal, Image, ActivityIndicator } from "react-native";
 import DeliveryRouteMap from "@/app/map/DeliveryRouteMap";
 // import { fetchOrderById } from "@/redux/slices/restaurant/orderSlice";
-import { fetchOrderById } from "@/redux/slices/user/userOrderSlice";
+import { fetchOrderById, fetchActiveOrders, setCurrentOrderFromList, updateActiveOrderStatus } from "@/redux/slices/user/userOrderSlice";
 import { fetchRestaurantById } from "@/redux/slices/user/restaurantSlice";
 import { useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux"
@@ -21,12 +21,14 @@ import { resetMapState, setETA } from "@/redux/slices/map/mapSlice";
 import { playNewOrderSound } from "@/hooks/notification";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Linking } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
+import FoodType from "../component/FoodType";
 
 
 export default function UserOrderPage () {
 
 // ... inside UserOrderPage, before the return statement
-
+  const [now, setNow] = useState(Date.now());
   const [isBillVisible, setBillVisible] = useState(false);
   const sheetRef = useRef(null);
   const snapPoints = useMemo(() => ["40%","55%", "85%", "100%"], []);
@@ -35,7 +37,7 @@ export default function UserOrderPage () {
   const { id, distanceKm } = useLocalSearchParams();
   const dispatch = useDispatch();
     
-  const { currentOrder, loading, error } = useSelector((state) => state.userOrder);
+  const { currentOrder, activeOrders, loading } = useSelector((state) => state.userOrder);
   const { restaurant } = useSelector((s) => s.restaurants);
   const user = useSelector((state) => state.auth.user);
   const riderLocation = useSelector((state) => state.riderLocation.lastLocation);
@@ -48,12 +50,46 @@ export default function UserOrderPage () {
   // keep ref in sync
   useEffect(() => { currentOrderRef.current = currentOrder; }, [currentOrder]);
 
+  // Add this state to force re-render every minute
   useEffect(() => {
-    if (currentOrder?.status === "placed") {
-      playNewOrderSound();
-      showToast(`Order No ${currentOrder.orderNo}`, "Your Order is placed succesfully")
+    //  Update 'now' every 30 seconds so the ETA counts down
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!id) return;
+
+    dispatch(resetMapState());
+    dispatch(clearLastRiderLocation());
+
+    const orderInList = activeOrders.find(o => o._id === id);
+    if (orderInList) {
+        console.log("⚡ Instant Load from Active List");
+        dispatch(setCurrentOrderFromList(id));
+        // Optional: Fetch fresh data in background to ensure sync
+        // dispatch(fetchOrderById(id)); 
+    } else {
+        console.log("🌍 Fetching from API");
+        dispatch(fetchOrderById(id));
     }
-  }, currentOrder)
+
+    return () => {
+        // When leaving page, wipe map again so next order starts fresh
+        dispatch(resetMapState());
+        dispatch(clearLastRiderLocation());
+    };
+  }, [id]);
+
+  // useEffect(() => {
+  //   if (currentOrder?.status === "placed") {
+  //     playNewOrderSound();
+  //     showToast(`Order No ${currentOrder.orderNo}`, "Your Order is placed succesfully")
+  //   }
+  // }, [currentOrder])
 
       // useEffect(() => {
       //   if (currentOrder?.riderId) {
@@ -115,11 +151,23 @@ function calculateHeading(prev, current) {
 
     useEffect(() => {
         if (currentOrder) {
-            console.log("Current order:", currentOrder);
+            console.log("Current order in user:", currentOrder);
         }
     }, [currentOrder]);
 
+// ✅ ADD THIS HOOK
+  useEffect(() => {
+    if (currentOrder?.status === "delivered") {
+      const timer = setTimeout(() => {
+        // Just navigate away. 
+        // DO NOT reset map here. 
+        // The unmount cleanup will handle the reset naturally.
+        router.replace("/user/dashboard/dash"); 
+      }, 3000); // 3 seconds is better so user can read "Delivered"
 
+      return () => clearTimeout(timer);
+    }
+  }, [currentOrder?.status]);
    
 
 
@@ -129,24 +177,9 @@ useEffect(() => {
 
     const socket = getSocket();
 
-    // 1. Join Rider Room (To get raw location updates for Map)
-    socket.emit("joinRoom", {
-      roomType: "rider",
-      roomId: currentOrder.riderId._id || currentOrder.riderId // Ensure we get the ID string
-    });
-
-    // 2. Join User Room (To get ETA updates sent via emitToUser)
-    socket.emit("joinRoom", {
-      roomType: "user",
-      roomId: user._id
-    });
-
-    // --- HANDLERS ---
-
     // Handle ETA & Logic Updates (The missing part)
     const handleEtaUpdate = (data) => {
       console.log("⚡ Live ETA Update:", data);
-      
       const eta = {
         etaMinutes: data.etaMinutes,
         remainingMeters: data.remainingMeters,
@@ -158,15 +191,37 @@ useEffect(() => {
       if (data.riderLoc) {
         dispatch(saveLastRiderLocation(data.riderLoc));
       }
+
+          dispatch(updateActiveOrderStatus({
+      orderId: data.orderId,
+      eta: data.etaMinutes
+    }));
     };
+
+
 
     // Handle Raw Location (Backup / Animation smoothness)
     const handleLocation = (coords) => {
       dispatch(saveLastRiderLocation(coords));
     };
 
+    // const handleRouteInit = (data) => {
+    //     const route = PolylineDecoder.decode(data.polyline).map(([lat, lng]) => ({
+    //         latitude: lat,
+    //         longitude: lng,
+    //     }))
+    //     console.log("order route init polyline:", route);
+    //     dispatch(setRouteCache(route));
+    //     dispatch(setRouteFetched());
+    // };
+
     // --- LISTENERS ---
-    socket.on("order:eta:update", handleEtaUpdate); // <--- THIS WAS MISSING
+    
+    // Join Rider Room
+    const riderRoomId = currentOrder.riderId._id || currentOrder.riderId;
+    socket.emit("joinRoom", { roomType: "rider", roomId: riderRoomId });
+
+    socket.on("order:eta:update", handleEtaUpdate);
     socket.on("rider:location", handleLocation);
 
     // Cleanup
@@ -174,7 +229,7 @@ useEffect(() => {
       socket.off("order:eta:update", handleEtaUpdate);
       socket.off("rider:location", handleLocation);
     };
-  }, [currentOrder?.riderId, user?._id]);
+  }, [currentOrder?.riderId, user?._id, currentOrder?._id]);
 
 
 const getTrackingStatusText = (status) => {
@@ -208,17 +263,22 @@ const getArrivalTimestamp = (minutes) => {
 };
 
 if (loading || !currentOrder || !restaurant) {
-  return <View style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><ActivityIndicator size="large" /></View>;
+  return (
+    <View style={{ height: "100%", width:"100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <ActivityIndicator size="large" color="#fd731dff" />
+    </View>
+  )
 }
 
-if (error) return <Text>{error}</Text>;
+
+// if (error) return <Text>{error}</Text>;
 
 const totalItems = currentOrder.items.reduce((acc, item) => acc + item.quantity, 0);
 
 
 const orderDistance = getDistanceFromLatLon(
-    restaurant?.address?.location.coordinates[1],
-    restaurant?.address?.location.coordinates[0],
+    currentOrder?.restaurantId?.address?.location.coordinates[1],
+    currentOrder?.restaurantId?.address?.location.coordinates[0],
     currentOrder.deliveryAddress.coordinates[1],
     currentOrder.deliveryAddress.coordinates[0],
 );
@@ -283,45 +343,159 @@ const distanceInMeters =
     const isDelivered = status === "delivered";
     const isCancelled = status === "cancelled";
     
-    // Default Values (Active Order)
-    let title = "Estimated Arrival";
-    let mainValue = `${Math.round((1200 + currentOrder?.routeInfo?.durationSeconds)/60)} min`; // Default prep time
-    let bottomText = getTrackingStatusText(status);
-    let distanceText = formatDistance(distanceInMeters);
-    let showDistance = true;
-    let mainColor = "#fd731dff"; // Orange
-    let arriveByText = `Arriving by ${["ready", "pick_up_by_rider", "on the way"].includes(status) ? getArrivalTimestamp(eta) : getArrivalTimestamp(preparationTime)} `;
+    if (["placed", "accepted", "preparing"].includes(status)) {
+      let minsLeft;
+      let arriveByTimeStr;
 
-    // Logic Overrides
-    if (["ready", "pick_up_by_rider", "on the way"].includes(status)) {
-        title = "Arriving in";
-        mainValue = `${eta} min`;
+      // Check if backend provided the calculated time (New System)
+      if (currentOrder.expectedDeliveryTime) {
+        const targetTime = new Date(currentOrder.expectedDeliveryTime).getTime();
+        // Math: Target - Now = Remaining
+        minsLeft = Math.ceil((targetTime - now) / 60000);
+        // Format Arrive By Time from DB
+        arriveByTimeStr = new Date(currentOrder.expectedDeliveryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } else {
+        minsLeft = 35; // Default safety
+        arriveByTimeStr = "Soon";
+      }
+
+      // 🛑 SAFETY CLAMP: 
+        // If kitchen is slow, don't let it show "Arriving in -5 mins".
+        // Minimum floor = Travel Time + 5 mins buffer.
+      const minTravel = Math.ceil((currentOrder.routeInfo?.durationSeconds || 900) / 60);
+      const minFloor = minTravel + 5; 
+
+      if (minsLeft < minFloor) {
+        minsLeft = minFloor; 
+      }
+
+      return {
+        title: "Estimated Arrival",
+        mainValue: `${minsLeft} min`, // Counts down: 25..24..23
+        bottomText: getTrackingStatusText(status),
+        distanceText: formatDistance(distanceInMeters),
+        showDistance: true,
+        mainColor: "#fd731dff", // Orange
+        arriveByText: `Arriving by ${arriveByTimeStr}`
+      }
     }
 
-    if (isDelivered) {
-        title = "Order Status";
-        mainValue = "Delivered";
-        bottomText = "Enjoy your meal! 😋";
-        showDistance = false; // Don't show "0m away"
-        mainColor = "#16A34A"; // Green
-        arriveByText = "Delivered";
-        dispatch(resetMapState());
+    // Rider has picked up. We ignore backend time and trust the LIVE socket ETA.
+    if (["ready", "pick_up_by_rider", "on the way"].includes(status)) {
+      // 'eta' comes from your Redux store (updated via handleEtaUpdate socket)
+        const liveEta = eta || 15; // fallback if socket hasn't fired yet
+        // Calculate dynamic "Arrive By" based on current speed
+        const liveTarget = new Date(now + liveEta * 60000);
+        const liveArriveStr = liveTarget.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        return {
+            title: "Arriving in",
+            mainValue: `${liveEta} min`, // Live updates from rider GPS
+            bottomText: getTrackingStatusText(status),
+            distanceText: formatDistance(remainingMeters), // Live distance
+            showDistance: true,
+            mainColor: "#fd731dff",
+            arriveByText: `Arriving by ${liveArriveStr}`
+        };
+    }
+
+   if (isDelivered) {
+        return {
+            title: "Order Status",
+            mainValue: "Delivered",
+            bottomText: "Enjoy your meal! 😋",
+            distanceText: "",
+            showDistance: false,
+            mainColor: "#16A34A", // Green
+            arriveByText: "Delivered"
+        };
     }
 
     if (isCancelled) {
-        title = "Order Status";
-        mainValue = "Cancelled";
-        bottomText = "Refund initiated if applicable";
-        showDistance = false;
-        mainColor = "#DC2626"; // Red
-        arriveByText = "Cancelled";
+        return {
+            title: "Order Status",
+            mainValue: "Cancelled",
+            bottomText: "Refund initiated if applicable",
+            distanceText: "",
+            showDistance: false,
+            mainColor: "#DC2626", // Red
+            arriveByText: "Cancelled"
+        };
     }
-
-    return { title, mainValue, bottomText, distanceText, showDistance, mainColor, arriveByText };
+        // Default loading state
+    return { title: "Loading...", mainValue: "--", bottomText: "", distanceText: "", showDistance: false, mainColor: "#999", arriveByText: "" };
   };
 
   const UI = getDisplayContent(); 
 
+const STATUS_ORDER = [
+  "placed", 
+  "accepted", 
+  "preparing", 
+  "ready", 
+  "pick_up_by_rider", 
+  "on the way", 
+  "delivered"
+];
+
+const getCurrentStepIndex = (status) => {
+  return STATUS_ORDER.indexOf(status);
+};
+
+const activeIndex = getCurrentStepIndex(currentOrder?.status || "placed");
+const brandColor = "#fd731dff";
+const grayColor = "#848484ff";
+
+const trackingSteps = [
+    {
+      key: 'restaurant',
+      title: `${restaurant?.name || 'Restaurant'} - ${restaurant?.address?.street || ''}`,
+      subtitle: 'Restaurant',
+      iconName: 'location',
+      iconType: Ionicons,
+      isAddress: true 
+    },
+    {
+      key: 'preparing',
+      title: 'Preparing your food',
+      subtitle: 'Kitchen',
+      iconName: 'restaurant',
+      iconType: Ionicons,
+      isAddress: false
+    },
+    {
+      key: 'ready',
+      title: 'Food is ready',
+      subtitle: 'Waiting for pickup',
+      iconName: 'fast-food',
+      iconType: Ionicons,
+      isAddress: false
+    },
+    {
+      key: 'pick_up_by_rider',
+      title: 'Rider has picked up',
+      subtitle: 'On the move',
+      iconName: 'bicycle',
+      iconType: Ionicons,
+      isAddress: false
+    },
+    {
+      key: 'on the way',
+      title: 'Order is on the way',
+      subtitle: 'Near you',
+      iconName: 'navigate-circle',
+      iconType: Ionicons,
+      isAddress: false
+    },
+    {
+      key: 'delivered',
+      title: `You - ${currentOrder?.deliveryAddress?.fullAddress || ''}`,
+      subtitle: 'Home',
+      iconName: 'home',
+      iconType: MaterialIcons,
+      isAddress: true
+    }
+  ];
   
 const BillModal = () => (
   <Modal
@@ -350,14 +524,26 @@ const BillModal = () => (
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     {/* Veg/Non-veg icon indicator could go here */}
-                    <MaterialIcons name="trip-origin" size={14} color="green" style={{marginRight:6}} />
+                    {/* <MaterialIcons name="trip-origin" size={14} color="green" style={{marginRight:6}} /> */}
+                    {/* <FoodType item={item} /> */}
                     <Image source={{ uri: item.menuItemId?.image }} style={styles.image} />
-                    <AppText style={{ fontSize: 15, color: "#334155", marginLeft: 7 }}>{item.menuItemId?.name} - {item.quantity}</AppText>
+                    <View style={{ flexDirection: "column",  marginLeft: 7 }}>
+                    <AppText style={{ fontSize: 15, color: "#334155" }}>{item.menuItemId?.name} - {item.quantity}</AppText>
+                    {item.addons?.length > 0 && (
+                      <View style={{ marginTop: 4 }}>
+                        {item.addons.map(addon => (
+                          <AppText key={addon.id} style={{ fontSize: 11, color: "#64748b", lineHeight: 10, marginTop: -8, }}>
+                            • {addon.name} (+₹{addon.price})
+                          </AppText>
+                        ))}
+                      </View>
+                    )}
+                    </View>
                 </View>
                 {/* <AppText style={{ fontSize: 12, color: "#94a3b8", marginLeft: 20 }}></AppText> */}
               </View>
               <AppText style={{ fontSize: 15, color: "#334155" }}>
-                ₹{(item.menuItemId?.price * item.quantity).toFixed(0)}
+                ₹{(item.unitPrice * item.quantity).toFixed(0)}
               </AppText>
             </View>
           ))}
@@ -481,8 +667,7 @@ const BillModal = () => (
             
             
         </View>
-        <View style={styles.card}>
-             {/* <MapPin size={32} color="green" fill="green" /> */}
+        {/* <View style={styles.card}>
              <View style={{ flexDirection: "row", alignItems: "center", color: "#000", paddingRight: 30 }}>
                 <Ionicons name="location" size={28} color="#fd731dff" />
                 <View>
@@ -498,22 +683,77 @@ const BillModal = () => (
                     <AppText variant="light" style={{ fontSize: 13, color: "#535252ff", marginLeft: 7, top: -2 }}>Home</AppText>
                 </View>
             </View>
-             {/* <Home size={32} color="#ff6200ff" /> */}
-        {/* <AppText style={styles.title}>Order #{currentOrder.orderId}</AppText>
-        <AppText style={styles.status}>{currentOrder.status.toUpperCase()}</AppText>
+        </View> */}
 
-        <AppText style={styles.subTitle}>Items</AppText>
-        {currentOrder.items.map((it) => (
-          <View key={it._id} style={styles.itemRow}>
-            <AppText style={styles.itemText}>{it.menuItemId?.name} x {it.quantity}</AppText>
-            <AppText style={styles.itemText}>₹{it.menuItemId?.price}</AppText>
+        <View style={styles.card}>
+      {trackingSteps.map((step, index) => {
+        
+        // Logic: Is this step completed or active?
+        // We map our visual steps to the STATUS_ORDER array.
+        // Restaurant = 0, Preparing = 2 (approx), Ready = 3, etc.
+        // This mapping ensures the colors fill up progressively.
+        
+        let stepActive = false;
+        
+        if (index === 0) stepActive = true; // Restaurant always active
+        else if (index === 5) stepActive = activeIndex >= 6; // Home only active at end
+        else {
+            // Map middle steps to specific statuses
+            if (step.key === 'preparing' && activeIndex >= 2) stepActive = true;
+            if (step.key === 'ready' && activeIndex >= 3) stepActive = true;
+            if (step.key === 'pick_up_by_rider' && activeIndex >= 4) stepActive = true;
+            if (step.key === 'on the way' && activeIndex >= 5) stepActive = true;
+        }
+
+        const tint = stepActive ? brandColor : grayColor;
+        const isLastItem = index === trackingSteps.length - 1;
+
+        return (
+          <View key={index} style={{ flexDirection: 'row', overflow: 'hidden' }}>
+            
+            {/* Left Column: Icon + Line */}
+            <View style={{ alignItems: 'center', width: 40, marginRight: 10 }}>
+              
+              {/* The Icon */}
+              <View style={{ 
+                 zIndex: 10, 
+                 backgroundColor: '#fff', // Hides the line behind the icon
+                 paddingVertical: 2 
+              }}>
+                <step.iconType name={step.iconName} size={25} color={tint} />
+              </View>
+
+              {/* The Vertical Line (Draws only if NOT the last item) */}
+              {!isLastItem && (
+                <View style={{
+                  flex: 1,
+                  width: 1,
+                  // backgroundColor: stepActive ? brandColor : grayColor,
+                  borderLeftWidth: 1,
+                  // If active, solid line. If inactive, dashed line.
+                  borderStyle: "dashed", 
+                  borderColor: stepActive ? brandColor : grayColor,
+                  minHeight: 30, // Minimum height for spacing
+                  marginTop: -2, // Connects snugly to icon
+                  marginBottom: -2
+                }} />
+              )}
+            </View>
+
+            {/* Right Column: Text */}
+            <View style={{ flex: 1, paddingBottom: isLastItem ? 0 : 20, justifyContent: 'center' }} >
+              <AppText variant="small" style={{ fontSize: 15, color: stepActive ? "#0f172a" : "#8a8989ff" }} numberOfLines={1}>
+                {step.title}
+              </AppText>
+              <AppText variant="light" style={{ fontSize: 13, color: stepActive ? "#535252ff" : "#848484ff", marginTop: 2 }}>
+                {step.subtitle}
+              </AppText>
+            </View>
+
           </View>
-
-          
-        ))} */}
-
-
-        </View>
+        );
+      })}
+    </View>
         {/* Rider Information (Only show if rider assigned) */}
                 {currentOrder.riderId && ["pick_up_by_rider", "on the way", "delivered"].includes(currentOrder.status) && (
                      <View style={styles.card}>
@@ -570,9 +810,9 @@ mainCard: {
     shadowOpacity: 0.1,
   },
 
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 4 },
-  status: { fontSize: 16, color: "#16A34A", fontWeight: "600" },
-  subTitle: { marginTop: 10, fontWeight: "600", fontSize: 16 },
+  title: { fontSize: 22, marginBottom: 4 },
+  status: { fontSize: 16, color: "#16A34A" },
+  subTitle: { marginTop: 10, fontSize: 16 },
   itemRow: { flexDirection: "row", justifyContent: "space-between", marginVertical: 4 },
   itemText: { fontSize: 15, color: "#111" },
 
@@ -658,5 +898,6 @@ sectionCard: {
     padding: 8,
     borderRadius: 8,
     alignSelf: 'flex-start'
-  }
+  },
+  
 });

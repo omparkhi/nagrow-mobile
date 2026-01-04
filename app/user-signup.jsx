@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import { signupUser } from "@/redux/slices/user/authSlice";
 import { useRouter } from "expo-router";
 import AppText from "@/components/AppText";
 import { Ionicons } from "@expo/vector-icons";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 
 export default function UserSignup() {

@@ -1,10 +1,11 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { useSelector } from "react-redux";
 import { Home, MapPinPlus } from "lucide-react-native";
 import AppText from "@/components/AppText";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 
-export default function DeliveryAddress({ selectedAddress }) {
+export default function DeliveryAddress({ selectedAddress, modal }) {
   return (
     <View style={styles.container}>
       <AppText variant="small" style={styles.heading}>YOUR DELIVERY ADDRESS</AppText>
@@ -34,7 +35,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginTop: 12,
+    marginTop: 17,
   },
   heading: {
     fontSize: 13,

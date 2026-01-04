@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList } from "react-native";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function DashboardMetricsRow() {
