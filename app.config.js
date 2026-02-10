@@ -24,6 +24,13 @@ export default {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
+      permissions: [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ],
       package: "com.anonymous.nagrowmobile",
       config: {
         googleMaps: {
@@ -33,6 +40,14 @@ export default {
     },
 
     plugins: [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -46,6 +61,7 @@ export default {
           },
         },
       ],
+
       "expo-font",
       [
         "expo-maps",

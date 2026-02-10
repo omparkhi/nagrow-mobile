@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -13,21 +13,26 @@ import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useSelector } from "react-redux";
 import AppText from "@/components/AppText";
 import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useDispatch } from "react-redux";
 import { logout } from "@/redux/slices/user/authSlice";
 import OrderHistory from "@/app/rider/history/page";
 import UserPastOrder from "../order/order-history";
+import RootWrapper from "@/app/rootWrapper";
+import { useLayoutConfig } from "@/app/context/LayoutContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 const HEADER_MAX_HEIGHT = 300; // Height of the Big Hero BG
-const HEADER_MIN_HEIGHT = Platform.OS === "ios" ? 95 : 80; // Height of Sticky Bar
+const HEADER_MIN_HEIGHT = Platform.OS === "ios" ? 95 : 100; // Height of Sticky Bar
 const SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 const PRIMARY_COLOR = "#141414"; // Replaced #0f172a
 
 export default function UserProfileScreen() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { setIsImmersive, setBottomSafeColor } = useLayoutConfig();
+  const insets = useSafeAreaInsets();
   
   // Assuming you have a user slice, if not, use dummy data or rider slice for now
   const user = useSelector((state) => state.auth?.user); 
@@ -38,6 +43,19 @@ export default function UserProfileScreen() {
     router.push("/user/edit-profile"); // Example route
   };
 
+  useFocusEffect(
+        useCallback(() => {
+          // 1. When Screen Focuses: Enable Immersive Mode (Hide Top Safe Area)
+          setIsImmersive(true);
+          setBottomSafeColor("white"); // Set bottom bar to white if needed
+    
+          return () => {
+            // 2. When Screen Unfocuses (Navigating away): Reset to Default
+            setIsImmersive(false);
+            setBottomSafeColor("transparent");
+          };
+        }, [])
+      );
   // ================= ANIMATION INTERPOLATIONS =================
 
   // 1. Sticky Header Background Opacity
@@ -74,6 +92,7 @@ export default function UserProfileScreen() {
   // ================= RENDER =================
 
   return (
+    <RootWrapper immersive={setIsImmersive} bottombar={true} barStyle="light">
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={PRIMARY_COLOR} />
 
@@ -109,7 +128,7 @@ export default function UserProfileScreen() {
       <Animated.View style={[styles.stickyHeader, { backgroundColor: PRIMARY_COLOR, opacity: headerOpacity }]} />
       
       {/* Sticky Header CONTENT */}
-      <View style={styles.stickyHeaderContent}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_MIN_HEIGHT, zIndex: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: insets.top, }}>
           <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
              <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
@@ -215,6 +234,7 @@ export default function UserProfileScreen() {
 
       </Animated.ScrollView>
     </View>
+    </RootWrapper>
   );
 }
 
@@ -277,11 +297,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, left: 0, right: 0,
     height: HEADER_MIN_HEIGHT, zIndex: 99
   },
-  stickyHeaderContent: {
-    position: 'absolute', top: 0, left: 0, right: 0,
-    height: HEADER_MIN_HEIGHT, zIndex: 100,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: Platform.OS === "ios" ? 40 : 10
+  stickyHeaderContent: { position: 'absolute', top: 0, left: 0, right: 0, height: HEADER_MIN_HEIGHT, zIndex: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === "ios" ? 40 : 10
   },
   stickyInfo: {
     flexDirection: 'row', alignItems: 'center', flex: 1, marginLeft: 15,

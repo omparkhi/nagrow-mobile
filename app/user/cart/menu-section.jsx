@@ -12,31 +12,29 @@ export default function MenuSection({ items, increment, decrement, handleAddItem
   console.log("item: ", items)
     const router = useRouter();
   const renderItem = ({ item }) => (  
+    <>
     <View style={styles.row}>
-      {item.image && (
-        <View style={styles.rowLeft}>
-          <FoodType item={item} />
-          <Image source={{ uri: item.image }} style={styles.image} />
-        </View>
-      )}
-<View style={styles.flex1}>
-  <AppText variant="small" style={styles.name}>
-    {item.name} x {item.quantity}
-  </AppText>
+<View style={styles.middle}>
+  {/* Title Row */}
+  <View style={styles.titleRow}>
+    <FoodType item={item} />
+    <AppText variant="small" style={styles.name}>
+      {item.name}
+    </AppText>
+  </View>
 
+  {/* Addons BELOW name */}
   {item.selectedAddons?.length > 0 && (
-    <View style={{ marginTop: -1 }}>
-      {item.selectedAddons.map(addon => (
-        <AppText
-          key={addon._id}
-          style={{ fontSize: 10, color: "#666", lineHeight: 14 }}
-        >
-          • {addon.name}
+    <View style={styles.addonBlock}>
+        <AppText style={styles.addonText}>
+          {item.selectedAddons.map(a => a.name).join(", ")}
         </AppText>
-      ))}
     </View>
   )}
+
+  
 </View>
+
 
       <View style={styles.qtyContainer}>
         {/* <View style={styles.counterBox}>
@@ -63,10 +61,14 @@ export default function MenuSection({ items, increment, decrement, handleAddItem
             <Plus size={14} color="#00b069ff" strokeWidth={3}/>
           </TouchableOpacity>
       </View>
+      <AppText style={styles.price}>₹{item.price * item.quantity}</AppText>
 
-        <AppText style={styles.price}>₹{item.price * item.quantity}</AppText>
+        
       </View>
+      
     </View>
+    
+    </>
   );
 
 
@@ -104,10 +106,11 @@ const styles = StyleSheet.create({
  row: {
   // backgroundColor: "#e7e7e7ff",
   flexDirection: "row",
-  alignItems: "center",
+  // alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "space-between",
   paddingHorizontal: 14,
-  paddingVertical: 10,   // instead of height: 80
+  paddingTop: 10, 
 },
 
   rowLeft: {
@@ -143,9 +146,8 @@ const styles = StyleSheet.create({
   },
 
   qtyContainer: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
-    gap: 22,
   },
 
   counterBox: {
@@ -175,6 +177,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     color: "#333",
+    // flex: 1,
+    
   },
 
   actionRow: {
@@ -200,4 +204,28 @@ const styles = StyleSheet.create({
    qtyBoxSmall: { flexDirection: 'row', width: 50, justifyContent: 'space-between', borderWidth: 1, borderColor: '#00b069ff', backgroundColor: '#f5fffbff', borderRadius: 8, alignItems:'center' },
     qtyBtnSmall: { color: '#00b069ff', fontSize: 18},
     qtyValSmall: { color: '#00b069ff', fontSize: 15 },
+    middle: {
+  flex: 1,
+  marginLeft: 10,
+},
+
+titleRow: {
+  flexDirection: "row",
+  alignItems: "center", // aligns FoodType + name properly
+  gap: 6,
+},
+
+addonBlock: {
+  marginTop: 2,
+  marginLeft: 18, // aligns addons under name, not icon
+  flexDirection: "column",   // 🔴 IMPORTANT
+  alignItems: "flex-start",
+},
+
+addonText: {
+  fontSize: 10,
+  color: "#666666ff",
+  lineHeight: 14,
+},
+
 });

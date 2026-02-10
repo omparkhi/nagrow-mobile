@@ -11,7 +11,7 @@ import {
   ActivityIndicator
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { fetchActiveOrders, setCurrentOrderFromList } from "@/redux/slices/user/userOrderSlice";
 import AppText from "@/components/AppText"; 
@@ -19,6 +19,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Navigation, Cross } from "lucide-react-native";
 import restaurantImage from "@/assets/restaurant.jpg";
 import { TouchableOpacity } from "@/app/TouchableOpacity";
+import RootWrapper from "@/app/rootWrapper";
+import { useLayoutConfig } from "@/app/context/LayoutContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Assuming you have a standard Text component
 // import LottieView from "lottie-react-native";
 // import EmptyOrderAnim from "@/assets/animations/empty-order.json"; // You'll need an animation asset
@@ -47,11 +50,27 @@ export default function ActiveOrdersPage() {
     const dispatch = useDispatch();
     const router = useRouter();
     const { activeOrders, loading } = useSelector((state) => state.userOrder);
+    const { setIsImmersive, setBottomSafeColor } = useLayoutConfig();
+    const insets = useSafeAreaInsets();
 
     // 1. Initial Load
     useEffect(() => {
         dispatch(fetchActiveOrders());
     }, [dispatch]);
+
+    useFocusEffect(
+        useCallback(() => {
+            // 1. When Screen Focuses: Enable Immersive Mode (Hide Top Safe Area)
+            setIsImmersive(true);
+            setBottomSafeColor("white"); // Set bottom bar to white if needed
+        
+            return () => {
+            // 2. When Screen Unfocuses (Navigating away): Reset to Default
+            setIsImmersive(false);
+            setBottomSafeColor("transparent");
+            };
+        }, [])
+    );
 
     // useEffect(() => {
     //     console.log("active order: ", activeOrders)
@@ -186,7 +205,8 @@ export default function ActiveOrdersPage() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <RootWrapper immersive={setIsImmersive}  bottombar={true} >
+        <View style={{ flex: 1 }}>
             {/* <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" /> */}
             
             {/* <View style={styles.}> */}
@@ -194,7 +214,7 @@ export default function ActiveOrdersPage() {
                     colors={['#fab082ff', '#ffffff3c']} 
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0.99, y: 0 }}
-                    style={styles.pageHeader}
+                    style={{ marginTop: -30, height: 150, flexDirection: "row", alignItems: "center", paddingTop: insets.top }}
                 >
                     <TouchableOpacity onPress={() => router.back()} style={{ paddingHorizontal: 16, }}>
                         <Ionicons name="arrow-back" size={25} color="#141414" />
@@ -233,7 +253,8 @@ export default function ActiveOrdersPage() {
                     <RefreshControl refreshing={loading} onRefresh={onRefresh} colors={["#fd731d"]} />
                 }
             />
-        </SafeAreaView>
+        </View>
+        </RootWrapper>
     );
 }
 
@@ -243,12 +264,7 @@ const styles = StyleSheet.create({
         flex: 1,
         // backgroundColor: "#f4f5f7", // Light Gray Background
     },
-    pageHeader: {
-        marginTop: -30,
-        height: 120,
-        // paddingHorizontal: 16,
-        flexDirection: "row",
-        alignItems: "center",
+    pageHeader: { marginTop: -30, height: 120, flexDirection: "row", alignItems: "center",
     },
     subpageHeader: {
         position: "absolute",

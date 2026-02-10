@@ -8,12 +8,15 @@ import { LayoutGrid, Home, ClipboardList, Navigation, Bike, RotateCw, RefreshCcw
 import { clearCurrentOrder } from "@/redux/slices/user/userOrderSlice";
 import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useBottomBarVisibility } from "@/app/context/NavBarVisibilityContext";
+import RootWrapper from "@/app/rootWrapper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 // import { MaterialIcons } from "@expo/vector-icons";
 
 
 const { width } = Dimensions.get("window");
 
 export default function UserBottomNav() {
+  const insets = useSafeAreaInsets();
   const [navLoading, setNavLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname(); 
@@ -23,7 +26,7 @@ export default function UserBottomNav() {
 
   const translateY = visibilityAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [90, 0],
+    outputRange: [80, 0],
   });
 
   // --- COLORS ---
@@ -41,11 +44,11 @@ export default function UserBottomNav() {
   
   const isLive = hasActiveList || hasCurrentOrder;
 
-  // 🔍 DEBUG LOGS
-console.log("--- DEBUG BOTTOM NAV ---");
-console.log("Active Orders Count:", activeOrders?.length);
-console.log("Current Order:", currentOrder?._id);
-console.log("Is Live?:", isLive);
+//   // 🔍 DEBUG LOGS
+// console.log("--- DEBUG BOTTOM NAV ---");
+// console.log("Active Orders Count:", activeOrders?.length);
+// console.log("Current Order:", currentOrder?._id);
+// console.log("Is Live?:", isLive);
 
   // --- ANIMATION ---
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -106,10 +109,12 @@ useEffect(() => {
 
 
   return (
+    // <RootWrapper immersive={true} bottomSafeAreaColor="white" >
     <Animated.View style={[
     styles.container,
     {
       transform: [{ translateY }],
+      // marginBottom: insets.bottom
     },
   ]}>
       
@@ -127,7 +132,8 @@ useEffect(() => {
           
         /> */}
         {/* <LayoutGrid size={24} color={isTabActive(["dashboard", "home"]) ? ACTIVE_COLOR : INACTIVE_COLOR}  strokeWidth={2} /> */}
-        <MaterialIcons name="home" size={26} color={isTabActive(["dashboard", "home"]) ? ACTIVE_COLOR : INACTIVE_COLOR}  />
+        {/* <MaterialIcons name="home" size={18} color={isTabActive(["dashboard", "home"]) ? ACTIVE_COLOR : INACTIVE_COLOR}  /> */}
+        <Navigation size={18} color={isTabActive(["dashboard", "home"]) ? ACTIVE_COLOR : INACTIVE_COLOR} fill={isTabActive(["dashboard", "home"]) ? ACTIVE_COLOR : INACTIVE_COLOR} />
 
         <AppText 
           variant="small" 
@@ -156,11 +162,11 @@ useEffect(() => {
             {isLive ? (
                  <View style={styles.liveBadgeContainer}>
                     {/* <MaterialIcons name="delivery-dining" size={28} /> */}
-                    <Bike size={28} color={LIVE_COLOR} strokeWidth={2} />
+                    <Bike size={18} color={LIVE_COLOR} strokeWidth={2} />
                     <View style={styles.redDot} />
                  </View>
             ) : (
-                  <ClipboardList size={24} color={isOrdersTabActive ? ACTIVE_COLOR : INACTIVE_COLOR}  strokeWidth={2} />
+                  <ClipboardList size={18} color={isOrdersTabActive ? ACTIVE_COLOR : INACTIVE_COLOR}  strokeWidth={2} />
 
             )}
         </Animated.View>
@@ -194,7 +200,7 @@ useEffect(() => {
           
         /> */}
         <RefreshCcw 
-          size={24} 
+          size={17} 
           color={isTabActive("reorder-page") ? ACTIVE_COLOR : INACTIVE_COLOR} 
         />
         <AppText 
@@ -217,7 +223,7 @@ useEffect(() => {
       >
         <FontAwesome5 
           name="user" 
-          size={22} 
+          size={18} 
           color={isTabActive("profile") ? ACTIVE_COLOR : INACTIVE_COLOR} 
         />
         <AppText 
@@ -233,6 +239,7 @@ useEffect(() => {
       
 
     </Animated.View>
+    // </RootWrapper>
   );
 }
 
@@ -246,7 +253,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    height: 50, // Slightly taller for better touch area
+    height: 45, // Slightly taller for better touch area
     paddingBottom: 5, 
     borderTopWidth: 1, // Changed to Top border for cleaner look
     borderTopColor: "#eee",
@@ -256,7 +263,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    zIndex: 9999,
+    // zIndex: 999,
   },
   tab: {
     alignItems: "center",
@@ -267,7 +274,7 @@ const styles = StyleSheet.create({
   },
   
   label: {
-    fontSize: 10,
+    fontSize: 9,
     // marginTop: 4
   },
   liveBadgeContainer: {

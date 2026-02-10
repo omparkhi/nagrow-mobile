@@ -7,9 +7,12 @@ import AppText from "@/components/AppText";
 import { useRouter, useSegments } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import { TouchableOpacity } from "@/app/TouchableOpacity";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import RootWrapper from "@/app/rootWrapper";
 
 const CartSummaryBar = () => {
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   const router = useRouter();
   const segments = useSegments();
@@ -56,7 +59,8 @@ const CartSummaryBar = () => {
 
   if (isMenuPage) {
     return (
-      <View style={styles.wrapper}>
+      // <RootWrapper immersive={true} bottomSafeAreaColor="white">
+      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, alignItems: "center", zIndex: 99999, }}>
         <View style={styles.MenuContainer}>
           <AppText variant="small" style={{ fontSize: 16, color: "#ffffffff" }}>{totalItem} item{totalItem > 1 ? "s" : ""} added</AppText>
           <TouchableOpacity
@@ -73,13 +77,14 @@ const CartSummaryBar = () => {
         </TouchableOpacity>
         </View>
       </View>
+      // </RootWrapper>
     )
   }
 
 
   return (
     <>
-    <View style={styles.wrapper}>
+    <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, alignItems: "center", zIndex: 99999, }}>
       <View style={styles.container}>
         <View style={styles.imageStack}>
             {images.map((img, index) => (
@@ -166,13 +171,7 @@ const CartSummaryBar = () => {
 export default CartSummaryBar;
 
 const styles = StyleSheet.create({
-  wrapper: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 99999,
+  wrapper: { position: "absolute", bottom: 56, left: 0, right: 0, alignItems: "center", zIndex: 99999,
   },
   container: {
     flex: 1,

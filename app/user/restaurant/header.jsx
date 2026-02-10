@@ -6,7 +6,7 @@ import AppText from "@/components/AppText";
 import { fetchRestaurantById } from "@/redux/slices/user/restaurantSlice";
 import { Ionicons, MaterialIcons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { ShieldCheck, Hotel } from "lucide-react-native";
+import { ShieldCheck, Hotel, Zap, Dot } from "lucide-react-native";
 import HandleBack from "@/app/back-button";
 import { TouchableOpacity } from "@/app/TouchableOpacity";
 import RestaurantDietBadge from "./type";
@@ -40,6 +40,7 @@ export default function RestaurantHeader({ scrollY, restaurant }) {
 
 
     return (
+      <>
         <View style={styles.wrapper}>
           {/* <HandleBack /> */}
           {/* <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}> */}
@@ -68,25 +69,36 @@ export default function RestaurantHeader({ scrollY, restaurant }) {
           {/* Name + Rating */}
           <View style={styles.nameRatingRow}>
             <View style={styles.nameRow}>
-              <AppText variant="body" style={styles.restaurantName} numberOfLines={1}>
+              <AppText variant="h2" style={styles.restaurantName} >
                 {restaurant?.name}
               </AppText>
             </View>
 
             <View style={styles.ratingBadge}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 2, backgroundColor: "#00c569", borderRadius: 20 }}>
+                <Ionicons name="star" size={12} color="#ffffffff" />
+              </View>
               <AppText variant="small" style={styles.ratingText}>
                 {restaurant?.rating || "3.0"}
               </AppText>
-              <Ionicons name="star" size={10} color="#ffffffff" />
+              
             </View>
           </View>
 
           {/* Time + Address */}
           <View style={styles.metaRow}>
-            <AppText variant="small" style={styles.metaText}>
+            {/* // Solid Yellow/Orange "Strike" Icon */}
+            <Zap 
+              size={13} 
+              color="#00c569" // The Stroke (Outline) color
+              fill="#00c569"  // The Fill (Inside) color - This makes it solid!
+              style={{ marginTop: -10 }}
+            />
+            <AppText variant="small" style={styles.deliveryTime}>
               {restaurant?.deliveryTimeEstimate} mins
             </AppText>
-            <AppText style={styles.metaDivider}>|</AppText>
+            {/* <AppText style={styles.metaDivider}>|</AppText> */}
+            <Dot size={10} color="#666" fill="#666" strokeWidth={4} style={{ marginTop: -10 }} /> 
             <AppText variant="small" style={styles.metaText}>
               {restaurant?.address?.street}
             </AppText>
@@ -105,15 +117,17 @@ export default function RestaurantHeader({ scrollY, restaurant }) {
         </View>
       </View>
     </View>
+    <View style={{ height: 5, backgroundColor: "#f0f0f0" }} />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: "#131222",
+    backgroundColor: "#ffffffff",
     paddingBottom: 20,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
+    // borderBottomWidth: 1,
+    // borderBlockColor: "#e2e2e2ff"
   },
    backBtn: {
         position: "absolute",
@@ -127,7 +141,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: "row",
     paddingTop: 45,
-    paddingHorizontal: 15,
+    paddingHorizontal:10,
     alignItems: "center",
     gap: 10,
   },
@@ -143,9 +157,9 @@ const styles = StyleSheet.create({
 
   infoCard: {
     flex: 1,
-    backgroundColor: "#fff",
+    // backgroundColor: "#f0f0f0",s
     borderRadius: 18,
-    padding: 10,
+    // padding: 10,
   },
 
   cuisineRow: {
@@ -171,24 +185,26 @@ const styles = StyleSheet.create({
   },
 
   nameRatingRow: {
-    marginLeft: 5,
+    // marginLeft: 5,
     marginTop: 8,
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
   },
 
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    // backgroundColor: "#f0f0f0"
+    // gap: 4,
     flexShrink: 1,
   },
 
   restaurantName: {
    marginTop: -5,
-    fontSize: 22,
+    fontSize: 30,
     // fontWeight: "bold",
-    maxWidth: 200,
+    // maxWidth: 200,
     textTransform: "capitalize",
   },
 
@@ -196,7 +212,7 @@ const styles = StyleSheet.create({
     height: 25,
     marginTop: -5,
     flexDirection: "row",
-    backgroundColor: "#00c569",
+    backgroundColor: "#eef7fdff",
     borderRadius: 13  ,
     paddingHorizontal: 6,
     alignItems: "center",
@@ -204,9 +220,9 @@ const styles = StyleSheet.create({
   },
 
   ratingText: {
-    color: "#fff",
+    color: "#00c569",
     // fontWeight: "bold",
-    fontSize: 12,
+    fontSize: 15,
   },
 
   metaRow: {
@@ -214,13 +230,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 6,
-    gap: 8,
+    gap: 4,
   },
 
   metaText: {
     marginTop: -10,
     fontSize: 13,
-    color: "#666",
+    color: "#616161",
+    fontFamily: "Nunito",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 5,
+    backgroundColor: "#f5f9fcff"
+    // fontWeight: "600",
+  },
+
+  deliveryTime: {
+    marginTop: -10,
+    fontSize: 13,
+    color: "#00c569",
+    fontFamily: "Nunito"
     // fontWeight: "600",
   },
 

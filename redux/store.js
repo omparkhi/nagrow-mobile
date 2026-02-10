@@ -24,6 +24,8 @@ import riderDeliveryReducer from "./slices/rider/riderDeliverySlice";
 import riderHistoryReducer from "./slices/rider/riderHistorySlice";
 import riderEarningReducer from "./slices/rider/riderEarningSlice";
 
+import riderStatsReducer from "./slices/rider/riderStatsSlice";
+
 import favoriteReducer from "./slices/user/favoriteSlice";
 
 const rootReducer = combineReducers({
@@ -45,6 +47,7 @@ const rootReducer = combineReducers({
     riderHistory: riderHistoryReducer,
     riderEarning: riderEarningReducer,
     favorites: favoriteReducer,
+    riderStats: riderStatsReducer,
 });
 
 const persistConfig = {
@@ -64,7 +67,8 @@ const persistConfig = {
     "userOrder",
     "riderHistory",
     "riderEarning",
-    "favorites"
+    "favorites",
+    "riderStats"
   ],
 };
 

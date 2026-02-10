@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { View, Text, ScrollView, StyleSheet, Alert, Modal, Image, ActivityIndicator } from "react-native";
-import DeliveryRouteMap from "@/app/map/DeliveryRouteMap";
+// import DeliveryRouteMap from "@/app/map/DeliveryRouteMap";
 // import { fetchOrderById } from "@/redux/slices/restaurant/orderSlice";
 import { fetchOrderById, fetchActiveOrders, setCurrentOrderFromList, updateActiveOrderStatus } from "@/redux/slices/user/userOrderSlice";
 import { fetchRestaurantById } from "@/redux/slices/user/restaurantSlice";
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux"
 import LottieView from "lottie-react-native";
 import DeliveryIcon from "@/assets/Delivery-Address.json"
@@ -23,21 +23,34 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Linking } from "react-native";
 import { TouchableOpacity } from "@/app/TouchableOpacity";
 import FoodType from "../component/FoodType";
+import RootWrapper from "@/app/rootWrapper";
+import { useLayoutConfig } from "@/app/context/LayoutContext";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomBarVisibility } from "@/app/context/NavBarVisibilityContext";
+import { fontFamilies } from "@/constants/typography";
+import OrderHeader from "./OrderHeader";
+import DeliveryRouteMap from "@/app/map/DeliveryRouteMap";
+import OrderSummary from "./OrderSummary ";
 
 
 export default function UserOrderPage () {
-
 // ... inside UserOrderPage, before the return statement
-  const [now, setNow] = useState(Date.now());
+const { setVisible } = useBottomBarVisibility();
+const { setIsImmersive, setBottomSafeColor } = useLayoutConfig();
+const insets = useSafeAreaInsets();
+  // const [now, setNow] = useState(Date.now());
   const [isBillVisible, setBillVisible] = useState(false);
   const sheetRef = useRef(null);
-  const snapPoints = useMemo(() => ["40%","55%", "85%", "100%"], []);
+  const snapPoints = useMemo(() => ["34%"], []);
   const router = useRouter();
-  const { showToast } = useToast();
+  // const { showToast } = useToast();
   const { id, distanceKm } = useLocalSearchParams();
   const dispatch = useDispatch();
     
-  const { currentOrder, activeOrders, loading } = useSelector((state) => state.userOrder);
+  // const { loading } = useSelector((state) => state.userOrder);
+  const currentOrder = useSelector(state => state.userOrder.currentOrder);
+  const activeOrders = useSelector(state => state.userOrder.activeOrders);
   const { restaurant } = useSelector((s) => s.restaurants);
   const user = useSelector((state) => state.auth.user);
   const riderLocation = useSelector((state) => state.riderLocation.lastLocation);
@@ -50,15 +63,37 @@ export default function UserOrderPage () {
   // keep ref in sync
   useEffect(() => { currentOrderRef.current = currentOrder; }, [currentOrder]);
 
-  // Add this state to force re-render every minute
   useEffect(() => {
-    //  Update 'now' every 30 seconds so the ETA counts down
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 30000);
-
-    return () => clearInterval(interval);
+    setVisible(false);     
+    return () => setVisible(true);  
   }, []);
+  
+
+  // --- EFFECT: BOTTOM SHEET SYNC ---
+  // This listens to the state and commands the sheet
+  useEffect(() => {
+    if (isBillVisible) {
+      sheetRef.current?.expand(); 
+    } else {
+      sheetRef.current?.close();
+    }
+  }, [isBillVisible]);
+
+  // Callback when user manually drags sheet down
+  const handleSheetChanges = useCallback((index) => {
+    if (index === -1) {
+      setBillVisible(false);
+    }
+  }, []);
+
+  
+        console.log("🔥 ORDER SCREEN RENDER");
+
+        useEffect(() => {
+  console.log("🔥 ORDER SCREEN MOUNT");
+}, []);
+
+
 
   useEffect(() => {
     if (!id) return;
@@ -68,7 +103,7 @@ export default function UserOrderPage () {
 
     const orderInList = activeOrders.find(o => o._id === id);
     if (orderInList) {
-        console.log("⚡ Instant Load from Active List");
+        // console.log("⚡ Instant Load from Active List");
         dispatch(setCurrentOrderFromList(id));
         // Optional: Fetch fresh data in background to ensure sync
         // dispatch(fetchOrderById(id)); 
@@ -137,7 +172,7 @@ export default function UserOrderPage () {
 // ) {
 //   return <Text>Invalid order: missing coordinates</Text>;
 // }
-console.log("restauarnt detail", restaurant?.address?.location.coordinates[1], restaurant?.address?.location.coordinates[0],)
+// console.log("restauarnt detail", restaurant?.address?.location.coordinates[1], restaurant?.address?.location.coordinates[0],)
 
 function calculateHeading(prev, current) {
     const dx = current.lng - prev.lng;
@@ -145,15 +180,15 @@ function calculateHeading(prev, current) {
     return (Math.atan2(dy, dx) * 180) / Math.PI;
   }
 
-    useEffect(() => {
-        dispatch(fetchOrderById(id));
-    }, [id, dispatch]);
+    // useEffect(() => {
+    //     dispatch(fetchOrderById(id));
+    // }, [id, dispatch]);
 
-    useEffect(() => {
-        if (currentOrder) {
-            console.log("Current order in user:", currentOrder);
-        }
-    }, [currentOrder]);
+    // useEffect(() => {
+    //     if (currentOrder) {
+    //         console.log("Current order in user:", currentOrder);
+    //     }
+    // }, [currentOrder]);
 
 // ✅ ADD THIS HOOK
   useEffect(() => {
@@ -177,26 +212,26 @@ useEffect(() => {
 
     const socket = getSocket();
 
-    // Handle ETA & Logic Updates (The missing part)
-    const handleEtaUpdate = (data) => {
-      console.log("⚡ Live ETA Update:", data);
-      const eta = {
-        etaMinutes: data.etaMinutes,
-        remainingMeters: data.remainingMeters,
-      }
-        console.log("eta for user", eta);
-        dispatch(setETA(eta));
+    // // Handle ETA & Logic Updates (The missing part)
+    // const handleEtaUpdate = (data) => {
+    //   // console.log("⚡ Live ETA Update:", data);
+    //   const eta = {
+    //     etaMinutes: data.etaMinutes,
+    //     remainingMeters: data.remainingMeters,
+    //   }
+    //     // console.log("eta for user", eta);
+    //     dispatch(setETA(eta));
 
-      // Update Rider Location Redux (The payload contains riderLoc too!)
-      if (data.riderLoc) {
-        dispatch(saveLastRiderLocation(data.riderLoc));
-      }
+    //   // Update Rider Location Redux (The payload contains riderLoc too!)
+    //   if (data.riderLoc) {
+    //     dispatch(saveLastRiderLocation(data.riderLoc));
+    //   }
 
-          dispatch(updateActiveOrderStatus({
-      orderId: data.orderId,
-      eta: data.etaMinutes
-    }));
-    };
+    //       dispatch(updateActiveOrderStatus({
+    //   orderId: data.orderId,
+    //   eta: data.etaMinutes
+    // }));
+    // };
 
 
 
@@ -221,7 +256,7 @@ useEffect(() => {
     const riderRoomId = currentOrder.riderId._id || currentOrder.riderId;
     socket.emit("joinRoom", { roomType: "rider", roomId: riderRoomId });
 
-    socket.on("order:eta:update", handleEtaUpdate);
+    // socket.on("order:eta:update", handleEtaUpdate);
     socket.on("rider:location", handleLocation);
 
     // Cleanup
@@ -231,29 +266,43 @@ useEffect(() => {
     };
   }, [currentOrder?.riderId, user?._id, currentOrder?._id]);
 
+  useFocusEffect(
+      useCallback(() => {
+        // 1. When Screen Focuses: Enable Immersive Mode (Hide Top Safe Area)
+        setIsImmersive(true);
+        setBottomSafeColor("white"); // Set bottom bar to white if needed
+  
+        return () => {
+          // 2. When Screen Unfocuses (Navigating away): Reset to Default
+          setIsImmersive(false);
+          setBottomSafeColor("transparent");
+        };
+      }, [])
+    );
 
-const getTrackingStatusText = (status) => {
-  switch (status) {
-    case "placed":
-      return "Waiting for restaurant confirmation...";
-    case "accepted":
-      return "Order accepted! Kitchen will start soon.";
-    case "preparing":
-      return "Your food is being prepared 🍳"; // Your current text
-    case "ready":
-      return "Food is ready! Waiting for rider.";
-    case "pick_up_by_rider":
-      return "Rider is picking up your order 🛍️";
-    case "on the way": // Ensure this matches schema exactly (spaces vs underscores)
-      return "Order is on the way! 🛵";
-    case "delivered":
-      return "Enjoy your meal! 😋";
-    case "cancelled":
-      return "This order was cancelled ❌";
-    default:
-      return "Tracking order...";
-  }
-};
+
+// const getTrackingStatusText = (status) => {
+//   switch (status) {
+//     case "placed":
+//       return "Waiting for restaurant confirmation...";
+//     case "accepted":
+//       return "Order accepted! Kitchen will start soon.";
+//     case "preparing":
+//       return "Your food is being prepared 🍳"; // Your current text
+//     case "ready":
+//       return "Food is ready! Waiting for rider.";
+//     case "pick_up_by_rider":
+//       return "Rider is picking up your order 🛍️";
+//     case "on the way": // Ensure this matches schema exactly (spaces vs underscores)
+//       return "Order is on the way! 🛵";
+//     case "delivered":
+//       return "Enjoy your meal! 😋";
+//     case "cancelled":
+//       return "This order was cancelled ❌";
+//     default:
+//       return "Tracking order...";
+//   }
+// };
 
 // Helper function
 const getArrivalTimestamp = (minutes) => {
@@ -262,12 +311,23 @@ const getArrivalTimestamp = (minutes) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-if (loading || !currentOrder || !restaurant) {
+// console.log("restaurant", restaurant)
+
+// if (loading || !currentOrder || !restaurant) {
+//   return (
+//     <View style={{ height: "100%", width:"100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+//       <ActivityIndicator size="large" color="#fd731dff" />
+//     </View>
+//   )
+// }
+
+
+if (!currentOrder) {
   return (
-    <View style={{ height: "100%", width:"100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center",  height: "100%", width: "100%" }}>
       <ActivityIndicator size="large" color="#fd731dff" />
     </View>
-  )
+  );
 }
 
 
@@ -282,10 +342,10 @@ const orderDistance = getDistanceFromLatLon(
     currentOrder.deliveryAddress.coordinates[1],
     currentOrder.deliveryAddress.coordinates[0],
 );
-console.log("order distance: ", orderDistance);
+// console.log("order distance: ", orderDistance);
 
 const avgSpeed = 25; // km/h
-console.log("distance km:", distanceKm);
+// console.log("distance km:", distanceKm);
 const travelTime = (distanceKm / avgSpeed) * 60; // in min
 
 const ETA = Math.round(travelTime + 15); // preparation time
@@ -294,7 +354,11 @@ const restCoords = restaurant?.address?.location?.coordinates;
 const deliveryCoords = currentOrder?.deliveryAddress?.coordinates;
 
  if (!restCoords || !deliveryCoords) {
-    return <Text>Invalid order: missing coordinates</Text>;
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center",  height: "100%", width: "100%" }}>
+        <ActivityIndicator size="large" color="#fd731dff" />
+      </View>
+    )
   }
 
 const isPickupPhase = ["pick_up_by_rider"].includes(currentOrder.status);
@@ -324,465 +388,88 @@ const restaurantLocation = { lat: restCoords[1], lng: restCoords[0] };
     dispatch(clearLastRiderLocation());
   }
 
-  const formatDistance = (meters) => {
-  if (!meters || meters <= 0) return "";
 
-  if (meters < 1000) {
-    return `${Math.round(meters)} m away`;
+
+// const trackingSteps = [
+//     {
+//       key: 'restaurant',
+//       title: `${restaurant?.name || 'Restaurant'} - ${restaurant?.address?.street || ''}`,
+//       subtitle: 'Restaurant',
+//       iconName: 'location',
+//       iconType: Ionicons,
+//       isAddress: true 
+//     },
+//     {
+//       key: 'preparing',
+//       title: 'Preparing your food',
+//       subtitle: 'Kitchen',
+//       iconName: 'restaurant',
+//       iconType: Ionicons,
+//       isAddress: false
+//     },
+//     {
+//       key: 'ready',
+//       title: 'Food is ready',
+//       subtitle: 'Waiting for pickup',
+//       iconName: 'fast-food',
+//       iconType: Ionicons,
+//       isAddress: false
+//     },
+//     {
+//       key: 'pick_up_by_rider',
+//       title: 'Rider has picked up',
+//       subtitle: 'On the move',
+//       iconName: 'bicycle',
+//       iconType: Ionicons,
+//       isAddress: false
+//     },
+//     {
+//       key: 'on the way',
+//       title: 'Order is on the way',
+//       subtitle: 'Near you',
+//       iconName: 'navigate-circle',
+//       iconType: Ionicons,
+//       isAddress: false
+//     },
+//     {
+//       key: 'delivered',
+//       title: `You - ${currentOrder?.deliveryAddress?.fullAddress || ''}`,
+//       subtitle: 'Home',
+//       iconName: 'home',
+//       iconType: MaterialIcons,
+//       isAddress: true
+//     }
+//   ];
+
+  const orderStatus = (order) => {
+    if (order.status === "placed") return "Order Confirmed";
+    if (order.status === "preparing") return "Preparing your food";
+    if (order.status === "ready") return "Food is ready";
+    if (order.status === "pick_up_by_rider") return "Rider has picked up";
+    if (order.status === "on the way") return "Order is on the way";
+    if (order.status === "delivered") return "Order Delivered";
   }
 
-  return `${(meters / 1000).toFixed(1)} km away`;
-};
+ 
+  return (
+    // <RootWrapper bottomSafeAreaColor="white">
+    <RootWrapper immersive={setIsImmersive} barStyle="light" bottombar={true} >
+      <View style={styles.container}>
+        <OrderHeader user={user} restaurant={restaurant} currentOrder={currentOrder} />
 
-const distanceInMeters =
-  ["placed", "accepted", "preparing", "ready"].includes(currentOrder.status) ? currentOrder?.routeInfo?.distanceMeters : remainingMeters;
+        {/* <View style={{ height: 500 }}> */}
+        <DeliveryRouteMap
+          origin={routeOrigin}
+          // restaurantLocation={restaurantLoc}
+          destination={routeDestination}
+          riderLocation={riderLocation}
+          order={currentOrder}
+          height={350}
+        />
 
-  // --- 2. THE PRODUCTION-READY DISPLAY LOGIC ---
-  const getDisplayContent = () => {
-    const status = currentOrder.status;
-    const isDelivered = status === "delivered";
-    const isCancelled = status === "cancelled";
-    
-    if (["placed", "accepted", "preparing"].includes(status)) {
-      let minsLeft;
-      let arriveByTimeStr;
-
-      // Check if backend provided the calculated time (New System)
-      if (currentOrder.expectedDeliveryTime) {
-        const targetTime = new Date(currentOrder.expectedDeliveryTime).getTime();
-        // Math: Target - Now = Remaining
-        minsLeft = Math.ceil((targetTime - now) / 60000);
-        // Format Arrive By Time from DB
-        arriveByTimeStr = new Date(currentOrder.expectedDeliveryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      } else {
-        minsLeft = 35; // Default safety
-        arriveByTimeStr = "Soon";
-      }
-
-      // 🛑 SAFETY CLAMP: 
-        // If kitchen is slow, don't let it show "Arriving in -5 mins".
-        // Minimum floor = Travel Time + 5 mins buffer.
-      const minTravel = Math.ceil((currentOrder.routeInfo?.durationSeconds || 900) / 60);
-      const minFloor = minTravel + 5; 
-
-      if (minsLeft < minFloor) {
-        minsLeft = minFloor; 
-      }
-
-      return {
-        title: "Estimated Arrival",
-        mainValue: `${minsLeft} min`, // Counts down: 25..24..23
-        bottomText: getTrackingStatusText(status),
-        distanceText: formatDistance(distanceInMeters),
-        showDistance: true,
-        mainColor: "#fd731dff", // Orange
-        arriveByText: `Arriving by ${arriveByTimeStr}`
-      }
-    }
-
-    // Rider has picked up. We ignore backend time and trust the LIVE socket ETA.
-    if (["ready", "pick_up_by_rider", "on the way"].includes(status)) {
-      // 'eta' comes from your Redux store (updated via handleEtaUpdate socket)
-        const liveEta = eta || 15; // fallback if socket hasn't fired yet
-        // Calculate dynamic "Arrive By" based on current speed
-        const liveTarget = new Date(now + liveEta * 60000);
-        const liveArriveStr = liveTarget.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        return {
-            title: "Arriving in",
-            mainValue: `${liveEta} min`, // Live updates from rider GPS
-            bottomText: getTrackingStatusText(status),
-            distanceText: formatDistance(remainingMeters), // Live distance
-            showDistance: true,
-            mainColor: "#fd731dff",
-            arriveByText: `Arriving by ${liveArriveStr}`
-        };
-    }
-
-   if (isDelivered) {
-        return {
-            title: "Order Status",
-            mainValue: "Delivered",
-            bottomText: "Enjoy your meal! 😋",
-            distanceText: "",
-            showDistance: false,
-            mainColor: "#16A34A", // Green
-            arriveByText: "Delivered"
-        };
-    }
-
-    if (isCancelled) {
-        return {
-            title: "Order Status",
-            mainValue: "Cancelled",
-            bottomText: "Refund initiated if applicable",
-            distanceText: "",
-            showDistance: false,
-            mainColor: "#DC2626", // Red
-            arriveByText: "Cancelled"
-        };
-    }
-        // Default loading state
-    return { title: "Loading...", mainValue: "--", bottomText: "", distanceText: "", showDistance: false, mainColor: "#999", arriveByText: "" };
-  };
-
-  const UI = getDisplayContent(); 
-
-const STATUS_ORDER = [
-  "placed", 
-  "accepted", 
-  "preparing", 
-  "ready", 
-  "pick_up_by_rider", 
-  "on the way", 
-  "delivered"
-];
-
-const getCurrentStepIndex = (status) => {
-  return STATUS_ORDER.indexOf(status);
-};
-
-const activeIndex = getCurrentStepIndex(currentOrder?.status || "placed");
-const brandColor = "#fd731dff";
-const grayColor = "#848484ff";
-
-const trackingSteps = [
-    {
-      key: 'restaurant',
-      title: `${restaurant?.name || 'Restaurant'} - ${restaurant?.address?.street || ''}`,
-      subtitle: 'Restaurant',
-      iconName: 'location',
-      iconType: Ionicons,
-      isAddress: true 
-    },
-    {
-      key: 'preparing',
-      title: 'Preparing your food',
-      subtitle: 'Kitchen',
-      iconName: 'restaurant',
-      iconType: Ionicons,
-      isAddress: false
-    },
-    {
-      key: 'ready',
-      title: 'Food is ready',
-      subtitle: 'Waiting for pickup',
-      iconName: 'fast-food',
-      iconType: Ionicons,
-      isAddress: false
-    },
-    {
-      key: 'pick_up_by_rider',
-      title: 'Rider has picked up',
-      subtitle: 'On the move',
-      iconName: 'bicycle',
-      iconType: Ionicons,
-      isAddress: false
-    },
-    {
-      key: 'on the way',
-      title: 'Order is on the way',
-      subtitle: 'Near you',
-      iconName: 'navigate-circle',
-      iconType: Ionicons,
-      isAddress: false
-    },
-    {
-      key: 'delivered',
-      title: `You - ${currentOrder?.deliveryAddress?.fullAddress || ''}`,
-      subtitle: 'Home',
-      iconName: 'home',
-      iconType: MaterialIcons,
-      isAddress: true
-    }
-  ];
-  
-const BillModal = () => (
-  <Modal
-    animationType="slide"
-    transparent={true}
-    visible={isBillVisible}
-    onRequestClose={() => setBillVisible(false)}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        
-        {/* Header */}
-        <View style={styles.modalHeader}>
-          <AppText variant="variant" style={{ fontSize: 18 }}>ORDER SUMMARY</AppText>
-          <TouchableOpacity onPress={() => setBillVisible(false)}>
-            <Ionicons name="close-circle" size={28} color="#94a3b8" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Items List */}
-        <ScrollView style={{ maxHeight: 300 }}>
-          {currentOrder.items.map((item, index) => (
-            <View key={index} style={[styles.billRow, { paddingBottom: 12, borderBottomWidth: 1, borderStyle: "dashed", borderColor: "#94a3b8" }]}>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    {/* Veg/Non-veg icon indicator could go here */}
-                    {/* <MaterialIcons name="trip-origin" size={14} color="green" style={{marginRight:6}} /> */}
-                    {/* <FoodType item={item} /> */}
-                    <Image source={{ uri: item.menuItemId?.image }} style={styles.image} />
-                    <View style={{ flexDirection: "column",  marginLeft: 7 }}>
-                    <AppText style={{ fontSize: 15, color: "#334155" }}>{item.menuItemId?.name} - {item.quantity}</AppText>
-                    {item.addons?.length > 0 && (
-                      <View style={{ marginTop: 4 }}>
-                        {item.addons.map(addon => (
-                          <AppText key={addon.id} style={{ fontSize: 11, color: "#64748b", lineHeight: 10, marginTop: -8, }}>
-                            • {addon.name} (+₹{addon.price})
-                          </AppText>
-                        ))}
-                      </View>
-                    )}
-                    </View>
-                </View>
-                {/* <AppText style={{ fontSize: 12, color: "#94a3b8", marginLeft: 20 }}></AppText> */}
-              </View>
-              <AppText style={{ fontSize: 15, color: "#334155" }}>
-                ₹{(item.unitPrice * item.quantity).toFixed(0)}
-              </AppText>
-            </View>
-          ))}
-        </ScrollView>
-
-        {/* <View style={styles.dashedDivider} /> */}
-
-        {/* Bill Details */}
-        <View style={styles.billRow}>
-          <AppText variant="small" style={{ color: "#64748b", fontSize: 14 }}>Item Total</AppText>
-          <AppText variant="small" style={{ color: "#64748b", fontSize: 14 }}>₹{currentOrder.totalAmount - (currentOrder.deliveryFee || 0)}</AppText>
-        </View>
-
-        <View style={styles.billRow}>
-          <AppText variant="small" style={{ color: "#64748b", fontSize: 14 }}>Delivery Fee</AppText>
-          <AppText variant="small" style={{ color: "#64748b", fontSize: 14 }}>₹{currentOrder.deliveryFee || 0}</AppText>
-        </View>
-        
-        <View style={styles.billRow}>
-            <AppText variant="small" style={{ color: "#64748b", fontSize: 14 }}>Platform Fee</AppText>
-            <AppText variant="small" style={{ color: "#64748b", fontSize: 14 }}>₹0.00</AppText>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Grand Total */}
-        <View style={styles.billRow}>
-          <AppText variant="h3" style={{ fontSize: 18 }}>Grand Total</AppText>
-          <AppText variant="h3" style={{ fontSize: 18, color: "#fd731dff" }}>₹{currentOrder.totalAmount}</AppText>
-        </View>
-
-        {/* Payment Method Badge */}
-        <View style={styles.paymentBadge}>
-            <AppText style={{ fontSize: 12, color: "#64748b" }}>
-                PAID VIA {currentOrder.paymentType.toUpperCase()}
-            </AppText>
-        </View>
-
+        <OrderSummary currentOrder={currentOrder} totalItems={totalItems} restaurant={restaurant} />
       </View>
-    </View>
-  </Modal>
-);
-
-    return (
-    <View style={styles.container}>
-      {/* <View style={{ height: 500 }}> */}
-              <DeliveryRouteMap
-        origin={routeOrigin}
-        // restaurantLocation={restaurantLoc}
-        destination={routeDestination}
-        riderLocation={riderLocation}
-        order={currentOrder}
-    />
-      {/* </View> */}
-
-          {/* <TouchableOpacity 
-                          style={{
-                          width: "60%",
-                          // marginTop: 20,
-                          backgroundColor: "#0f172a",
-                          paddingVertical: 13,
-                          borderRadius: 10,
-                          alignItems: "center",
-                          color: "#fff"
-                      }}
-           onPress={handleClearMapState}>
-            clear Map
-          </TouchableOpacity> */}
-      <View style={styles.etaCard}>
-                <AppText variant="small" style={styles.etaTitle}>{UI.title}</AppText>
-                <AppText variant="h2" style={[styles.etaTime,  { color: UI.mainColor }]}>{UI.mainValue}</AppText>
-                {UI.showDistance && (
-                  <AppText variant="small" style={styles.etaMin}>{UI.distanceText}</AppText>
-                )}
-                {/* Subtitle (Status Text) */}
-              <AppText variant="small" style={styles.etaSubtitle}>
-                  {UI.bottomText}
-              </AppText>
-            </View>
-          <BottomSheet
-            // style={styles.container}
-            ref={sheetRef}
-            snapPoints={snapPoints}
-            enablePanDownToClose={false}
-            index={0}  // start collapsed
-            backgroundStyle={{ backgroundColor: "#ecedf0ff", borderRadius: 20 }}
-          >
-
-            <BottomSheetScrollView>
-      <View style={styles.mainCard} >
-        <View style={[{ flexDirection: "column" }, , styles.card]} >
-            
-
-            <View style={{ flexDirection: "row", alignItems: "center", paddingBottom: 10, paddingHorizontal: 10,  }} >
-                <View style={{ backgroundColor: "#fff9f9ff", borderRadius: 10 }}>
-                <LottieView
-                    source={DeliveryIcon}
-                    autoPlay
-                    loop={currentOrder.status !== 'delivered'}
-                    style={{ width: 50, height: 50 }}
-                />
-                </View>
-                <View style={{ flexDirection: "column", marginLeft: 10 }}>
-                    <AppText variant="small" style={{ fontSize: 17, color: "#535252ff" }}>{currentOrder.status === 'delivered' ? "ORDER DELIVERED" : "DELIVERING YOUR ORDER"}</AppText>
-                    <AppText variant="light" style={{ fontSize: 12 }}>{UI.arriveByText}</AppText>
-                </View>
-
-            
-            </View >
-            <View style={{ flexDirection: "row",  alignItems: "center", justifyContent: "space-between", marginLeft: 10, borderTopWidth: 1, borderTopColor: "#d3ceceff", borderStyle: "dotted",   }}>
-            <View style={{ flexDirection: "column" }}>
-                <AppText variant="small" style={{ fontSize: 13, color: "#535252ff", marginTop: 10 }}>ORDER - <AppText variant="small" style={{ color: "#535252ff", fontSize: 13 }}>{currentOrder.orderNo}</AppText></AppText>
-                <AppText variant="small" style={{ fontSize: 13, color: "#fd731dff", top: -2 }}>₹ {currentOrder?.totalAmount} - {totalItems} item{totalItems > 1 ? 's' : ''} - {currentOrder?.paymentType.toUpperCase()}</AppText>
-            </View>
-            <TouchableOpacity style={{ padding: 10, backgroundColor: "#fd731dff", borderRadius: 10 }} onPress={() => setBillVisible(true)} >
-                    <AppText variant="small" style={{ color: "#ffffffff" }}>View Bill</AppText>
-                </TouchableOpacity>
-            
-            </View>
-
-            
-            
-        </View>
-        {/* <View style={styles.card}>
-             <View style={{ flexDirection: "row", alignItems: "center", color: "#000", paddingRight: 30 }}>
-                <Ionicons name="location" size={28} color="#fd731dff" />
-                <View>
-                    <AppText variant="small" style={{ fontSize: 15, color: "#535252ff", marginLeft: 7 }}>{restaurant?.name} - {restaurant?.address.street}</AppText>
-                    <AppText variant="light" style={{ fontSize: 13, color: "#535252ff", marginLeft: 7, top: -2 }}>Restaurant</AppText>
-                </View>
-             </View>
-             <View style={{ height: 30, borderLeftWidth: 1, borderStyle: "dashed", borderColor: "#fd731dff", marginLeft: 13 }}></View>
-             <View style={{ flexDirection: "row", alignItems: "center", color: "#000", paddingRight: 30 }}>
-             <MaterialIcons name="home" size={28} color="#fd731dff"  />
-                <View>
-                    <AppText variant="small" style={{ fontSize: 15, color: "#535252ff", marginLeft: 7 }} numberOfLines={1}>You - {currentOrder?.deliveryAddress?.fullAddress}</AppText>
-                    <AppText variant="light" style={{ fontSize: 13, color: "#535252ff", marginLeft: 7, top: -2 }}>Home</AppText>
-                </View>
-            </View>
-        </View> */}
-
-        <View style={styles.card}>
-      {trackingSteps.map((step, index) => {
-        
-        // Logic: Is this step completed or active?
-        // We map our visual steps to the STATUS_ORDER array.
-        // Restaurant = 0, Preparing = 2 (approx), Ready = 3, etc.
-        // This mapping ensures the colors fill up progressively.
-        
-        let stepActive = false;
-        
-        if (index === 0) stepActive = true; // Restaurant always active
-        else if (index === 5) stepActive = activeIndex >= 6; // Home only active at end
-        else {
-            // Map middle steps to specific statuses
-            if (step.key === 'preparing' && activeIndex >= 2) stepActive = true;
-            if (step.key === 'ready' && activeIndex >= 3) stepActive = true;
-            if (step.key === 'pick_up_by_rider' && activeIndex >= 4) stepActive = true;
-            if (step.key === 'on the way' && activeIndex >= 5) stepActive = true;
-        }
-
-        const tint = stepActive ? brandColor : grayColor;
-        const isLastItem = index === trackingSteps.length - 1;
-
-        return (
-          <View key={index} style={{ flexDirection: 'row', overflow: 'hidden' }}>
-            
-            {/* Left Column: Icon + Line */}
-            <View style={{ alignItems: 'center', width: 40, marginRight: 10 }}>
-              
-              {/* The Icon */}
-              <View style={{ 
-                 zIndex: 10, 
-                 backgroundColor: '#fff', // Hides the line behind the icon
-                 paddingVertical: 2 
-              }}>
-                <step.iconType name={step.iconName} size={25} color={tint} />
-              </View>
-
-              {/* The Vertical Line (Draws only if NOT the last item) */}
-              {!isLastItem && (
-                <View style={{
-                  flex: 1,
-                  width: 1,
-                  // backgroundColor: stepActive ? brandColor : grayColor,
-                  borderLeftWidth: 1,
-                  // If active, solid line. If inactive, dashed line.
-                  borderStyle: "dashed", 
-                  borderColor: stepActive ? brandColor : grayColor,
-                  minHeight: 30, // Minimum height for spacing
-                  marginTop: -2, // Connects snugly to icon
-                  marginBottom: -2
-                }} />
-              )}
-            </View>
-
-            {/* Right Column: Text */}
-            <View style={{ flex: 1, paddingBottom: isLastItem ? 0 : 20, justifyContent: 'center' }} >
-              <AppText variant="small" style={{ fontSize: 15, color: stepActive ? "#0f172a" : "#8a8989ff" }} numberOfLines={1}>
-                {step.title}
-              </AppText>
-              <AppText variant="light" style={{ fontSize: 13, color: stepActive ? "#535252ff" : "#848484ff", marginTop: 2 }}>
-                {step.subtitle}
-              </AppText>
-            </View>
-
-          </View>
-        );
-      })}
-    </View>
-        {/* Rider Information (Only show if rider assigned) */}
-                {currentOrder.riderId && ["pick_up_by_rider", "on the way", "delivered"].includes(currentOrder.status) && (
-                     <View style={styles.card}>
-                      
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <View style={styles.riderAvatar}>
-                                <Ionicons name="person" size={20} color="#fff" />
-                            </View>
-                            <View style={{ flex: 1, marginLeft: 12 }}>
-                                <AppText variant="small" style={{color: "#535252ff" }}>{currentOrder.riderId.name || "Rider Assigned"}</AppText>
-                                <AppText variant="small" style={{ fontSize: 12, color: "#919191ff" }}>Call without sharing your number</AppText>
-                            </View>
-                  {currentOrder.status !== 'delivered' && (
-                      <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL(`tel:${currentOrder.riderId.phone}`)}>
-                        <Ionicons name="call" size={20} color="#fff" />
-                      </TouchableOpacity>
-                  )}
-
-                        </View>
-
-                     </View>
-                     
-                )}
-                      
-      </View>
-      </BottomSheetScrollView>
-      </BottomSheet>
-      <BillModal />
-    </View>
+    </RootWrapper>
   );
 }
 
@@ -852,18 +539,23 @@ sectionCard: {
     },
     modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', // Dim background
-    justifyContent: 'flex-end', // Aligns modal to bottom
-    marginBottom: 45
+  },
+  
+  // ADD THIS NEW STYLE OBJECT
+  modalContentContainer: {
+   
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
+    paddingHorizontal: 20,
     elevation: 20,
     // minHeight: 300,
   },
+
+  // modalOverlay: { flex: 1 },
+  // modalContentContainer: { paddingBottom: 40 }, // Space for safe area
+  // modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  // modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   image: {
     width: 28,
     height: 28,

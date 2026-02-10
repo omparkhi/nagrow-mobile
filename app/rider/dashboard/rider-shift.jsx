@@ -5,6 +5,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import WaitingRider from "@/assets/Waiting.json";
+import ScanOrder from "@/assets/Scan.json";
 import New from "@/assets/New.json";
 import { getAddressFromCoords } from "@/utils/getAddressFromCoords";
 import { useSelector, useDispatch } from "react-redux";
@@ -17,14 +18,19 @@ import { useRouter } from "expo-router";
 import { fetchRiderProfile } from "@/redux/slices/rider/authSlice";
 import { stopShift } from "@/redux/slices/rider/riderTrackingSlice";
 // import { playNewOrderSound } from "@/hooks/rest-sound-notification";
-import { playNewOrderSound } from "@/hooks/notification";
+import { playNewOrderSound, playNewOrderSoundForRider } from "@/hooks/notification";
 import { clearDeliveryRequest } from "@/redux/slices/rider/riderDeliverySlice";
 // import MapboxGL from "@rnmapbox/maps";
 import { useToast } from "@/app/ToastContext";
 import { resetMapState } from "@/redux/slices/map/mapSlice";
+import useOrderSound from "@/hooks/useOrderSound";
+import RiderFooter from "../component/Footer";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import RiderStartShift from "@/assets/Rider-Shift.json";
+import { fetchTodayStats } from "@/redux/slices/rider/riderStatsSlice";
 
 export default function RiderShiftDashboard() {
-  const { showToast } = useToast();
+  // const { showToast } = useToast();
   const dispatch = useDispatch();
   const router = useRouter();
   const [showPopup, setShowPopup] = useState(false);
@@ -37,23 +43,35 @@ export default function RiderShiftDashboard() {
   const [socketReady, setSocketReady] = useState(false);
   const deliveryState = useSelector((state) => state.riderDelivery);
   const deliveryOrder = deliveryState.request;
+  const insets = useSafeAreaInsets();
+
+  const { earnings, orders } = useSelector(state => state.riderStats);
+
+  useEffect(() => {
+    if (rider?._id) {
+      dispatch(fetchTodayStats(rider._id));
+    }
+  }, [rider?._id]);
 
   // timer state
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef(null);
+
+  const { playSound, stopSound } = useOrderSound();
 
   const soundIntervalRef = useRef(null);
 
   // 1. Handle New Order & Start Timer
   useEffect(() => {
     if (deliveryOrder && deliveryState.showModal) {
+      playSound();
       // Use the timeLeft from backend or default to 45s
       setTimeLeft(deliveryOrder.timeLeft || 45);
 
-      if (soundIntervalRef.current) clearInterval(soundIntervalRef.current);
-      soundIntervalRef.current = setInterval(() => {
-        playNewOrderSound();
-      }, 1200);
+      // if (soundIntervalRef.current) clearInterval(soundIntervalRef.current);
+      // soundIntervalRef.current = setInterval(() => {
+      //   playNewOrderSoundForRider();
+      // }, 8000);
 
       // Clear any existing timer
       if (timerRef.current) clearInterval(timerRef.current);
@@ -72,8 +90,9 @@ export default function RiderShiftDashboard() {
       }, 1000)
     } else {
       // Cleanup if modal closes
+      stopSound();
       if (timerRef.current) clearInterval(timerRef.current);
-      if (soundIntervalRef.current) clearInterval(soundIntervalRef.current);
+      // if (soundIntervalRef.current) clearInterval(soundIntervalRef.current);
     }
 
     return () => {
@@ -129,15 +148,45 @@ useEffect(() => {
   }, [rider])
 
   useEffect(() => {
-    const interval = setInterval(() => setOnlineTime(t => t + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
+    let interval;
 
+    const updateTimer = () => {
+      if (rider?.shiftStartTime && rider?.isOnline) {
+        const start = new Date(rider.shiftStartTime).getTime();
+        const now = Date.now();
+
+        // Calculate total seconds elapsed
+        const diffInSeconds = Math.floor((now - start) / 1000);
+        
+        // Prevent negative numbers (if server clock is slightly ahead)
+        setOnlineTime(diffInSeconds > 0 ? diffInSeconds : 0);
+      } else {
+        setOnlineTime(0);
+      }
+      
+    };
+    updateTimer();
+
+    // / 2. Update every second
+    // We recalculate the difference every tick instead of just incrementing +1.
+    // This ensures accuracy even if the app goes to background or lags.
+    interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [rider]);
+
+  // ⚡ FORMATTER (HH:MM:SS)
   const formatTime = () => {
     const h = Math.floor(onlineTime / 3600);
     const m = Math.floor((onlineTime % 3600) / 60);
     const s = onlineTime % 60;
-    return `${h > 0 ? h + "h " : ""}${m}m ${s}s`;
+    
+    // Add leading zeros
+    const hh = h < 10 ? `0${h}` : h;
+    const mm = m < 10 ? `0${m}` : m;
+    const ss = s < 10 ? `0${s}` : s;
+
+    return `${h > 0 ? hh + ":" : ""}${mm}:${ss}`;
   };
 
   // order requested
@@ -149,11 +198,15 @@ const handleAcceptOrder = () => {
 
 const handleAcceptDelivery = async () => {
   try {
+    
     const res = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/rider/order/response`, {
       riderId: rider._id,
       orderId: deliveryOrder.orderId,
       action: "accept",
     });
+    if (res.data.success) {
+      await stopSound();
+    }
     
     const socket = getSocket();
     socket.emit("delivery:accepted", {
@@ -180,6 +233,9 @@ const handleRejectDelivery = async () => {
       orderId: deliveryOrder.id,
       action: "reject",
     });
+    if (res.data.success) {
+      await stopSound();
+    }
     Alert.alert("Order passed to next rider");
     dispatch(clearDeliveryRequest());
   } catch (err) {
@@ -196,7 +252,7 @@ const handleRejectDelivery = async () => {
     <View style={styles.container}>
       
       {/* CURRENT LOCATION */}
-      <View style={styles.gradientCard}>
+      {/* <View style={styles.gradientCard}>
         <View style={styles.row}>
           <View style={styles.roundIcon}>
             <Ionicons name="location" size={20} color="#0f172a" />
@@ -206,7 +262,7 @@ const handleRejectDelivery = async () => {
             <AppText variant="small" style={styles.sub}>Accurate • GPS tracking active</AppText>
           </View>
         </View>
-      </View>
+      </View> */}
 
       {showPopup && (
         <StartDeliveryPopup 
@@ -219,34 +275,43 @@ const handleRejectDelivery = async () => {
       {/* INCOMING ORDERS */}
       <View style={styles.card}>
         <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-             <AppText variant="small" style={styles.sectionTitle}>Incoming Orders</AppText>
-             {/* 🕒 VISUAL TIMER INDICATOR */}
-
-             {deliveryState.showModal && (
+             <View style={{ width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between"}}>
+              <AppText variant="small" style={styles.sectionTitle}>Findings Orders nearby...</AppText>
+             
+              {deliveryState.showModal ? (
                  <View style={[styles.timerBadge, { backgroundColor: timeLeft < 10 ? '#fee2e2' : '#e0f2fe' }]}>
                     <MaterialIcons name="access-time" size={16} color={isUrgent ? "#ef4444" : "#0284c7"} style={{marginRight: 4}} />
                      <AppText style={[styles.timerText, { color: timeLeft < 10 ? '#ef4444' : '#0284c7' }]}>
                         00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
                      </AppText>
                  </View>
+             ) : (
+                <View style={styles.signalBadge}>
+                  <Ionicons name="cellular" size={14} color="#16a34a" />
+                  <AppText variant="small" style={{fontSize: 12, color:'#16a34a', marginLeft: 4}}>Strong</AppText>
+                </View>
              )}
+             </View>
+             {/* 🕒 VISUAL TIMER INDICATOR */}
+
+             
         </View>
 
         {deliveryState.showModal && deliveryOrder ?  (
-        <View style={styles.emptySection}>
-          <View style={styles.emptyIconWrap}>
+        <View style={styles.orderSection}>
+          <View style={styles.orderIconWrap}>
           {/* <StartDeliveryPopup/> */}
           <LottieView
-                source={New}
+                source={RiderStartShift}
                 autoPlay
                 loop
-                style={{ width: 150, height: 150}}
+                style={{ width: 120, height: 120} }
             />
           </View>
           {/* <AppText variant="small" style={styles.emptyText}>New Delivery</AppText> */}
-          <AppText variant="small" style={{fontSize: 16, color: "#64748b"}}>Order No: {deliveryOrder.orderNo}</AppText>
-          <AppText variant="small" style={styles.emptySub}>You have to pick order from <AppText variant="small" style={{ color: "#64748b", fontSize: 14}}>{deliveryOrder.restaurantName.toUpperCase()}</AppText></AppText>
-          <AppText variant="small" style={styles.emptySub}>Amount: ₹{deliveryOrder.amount}</AppText>
+          <AppText variant="small" style={{fontSize: 18, color: "#64748b", marginTop: 25,}}>Order No: {deliveryOrder?.orderNo || "Nagrow-hudhu8"}</AppText>
+          <AppText variant="small" style={{ fontSize: 13, color: "#64748b"}}>You have to pick order from <AppText variant="small" style={{ color: "#000000", fontSize: 14}}>{deliveryOrder?.restaurantName.toUpperCase() || "Nagrow"}</AppText></AppText>
+          <AppText variant="small" style={{ color: "#0f172a", marginTop: 5 }}>Expected Earning: ₹{deliveryOrder?.deliveryFee}</AppText>
 
           <View style={styles.btnRow}>
             <TouchableOpacity 
@@ -264,16 +329,26 @@ const handleRejectDelivery = async () => {
         </View>
       ) : 
       <View style={styles.emptySection}>
+        <View style={{ flex: 1 }}>
+            <AppText variant="small" style={{ color: "#64748b", fontSize:19, lineHeight: 20 }}>Searching for Orders</AppText>
+            <AppText variant="small" style={styles.emptyText}>No orders yet</AppText>
+            <AppText variant="small" style={styles.emptySub}>Stay online to receive orders</AppText>
+          </View>
           <View style={styles.emptyIconWrap}>
             <LottieView
                 source={WaitingRider}
                 autoPlay
                 loop
-                style={{ width: 90, height: 90}}
+                style={{ width: 90, height: 90, zIndex: 999}}
+            />
+            <LottieView 
+              source={ScanOrder}
+              autoPlay
+              loop
+              style={{ position: "absolute", width: 230, height: 230 }}
             />
           </View>
-          <AppText variant="small" style={styles.emptyText}>No orders yet</AppText>
-          <AppText variant="small" style={styles.emptySub}>Stay online to receive orders</AppText>
+          
         </View>
        }
 
@@ -290,12 +365,12 @@ const handleRejectDelivery = async () => {
 
         <View style={styles.statRow}>
           <AppText variant="small" style={styles.statLabel}>💰 Earnings Today</AppText>
-          <AppText variant="small" style={styles.statValue}>₹0</AppText>
+          <AppText variant="small" style={styles.statValue}>₹{earnings.toFixed(2)}</AppText>
         </View>
 
         <View style={styles.statRow}>
           <AppText variant="small" style={styles.statLabel}>🛵 Completed Orders</AppText>
-          <AppText variant="small" style={styles.statValue}>0</AppText>
+          <AppText variant="small" style={styles.statValue}>{orders}</AppText>
         </View>
       </View>
       <LogoutButton/>
@@ -315,15 +390,20 @@ const handleRejectDelivery = async () => {
               Stop Shift
             </AppText>
           </TouchableOpacity>
+
+          <View style={{ marginTop: 30 }}>
+            <RiderFooter style={insets.bottom} />
+          </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    backgroundColor: "#f4f9ffff",
+    marginTop: -30,
+    paddingHorizontal: 12,
+    // paddingTop: 10,
+    // backgroundColor: "#f4f9ffff",
     height: "100%",
   },
 
@@ -373,29 +453,50 @@ const styles = StyleSheet.create({
   },
 
   emptySection: {
+    flexDirection: "row",
     alignItems: "center",
+    // justifyContent: "space-between",
+    gap: 40,
     paddingVertical: 15,
+    // marginTop: 30
+  },
+    orderSection: {
+    // flexDirection: "row",
+    alignItems: "center",
+    // justifyContent: "space-between",
+    paddingVertical: 25,
+    // marginTop: 30
   },
 
   emptyIconWrap: {
     width: 60,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: "#f1f5f9",
+    // borderRadius: 30,
+    // backgroundColor: "#f1f5f9",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 20, 
+    
+  },
+  orderIconWrap: {
+    width: 60,
+    height: 60,
+    
+    alignItems: "center",
+    justifyContent: "center",
+    // marginRight: 20
   },
 
   emptyText: {
     fontSize: 16,
     color: "#0f172a",
-    marginTop: 12,
+    marginTop: 10,
   },
 
   emptySub: {
     fontSize: 13,
     color: "#64748b",
-    marginTop: 3,
+    // marginTop: 3,
   },
 
   statRow: {
@@ -451,5 +552,13 @@ const styles = StyleSheet.create({
   },
   timerText: {
       fontSize: 14,
+  }, 
+  signalBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#dcfce7', 
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    borderRadius: 12 
   }
 });

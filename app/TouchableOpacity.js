@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity as RNTouchableOpacity, Platform, Keyboard } from 'react-native';
+import { Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { NavigationLock } from '@/utils/NavigationLock';
 
@@ -56,12 +57,13 @@ export const TouchableOpacity = ({
   };
 
   return (
-    <RNTouchableOpacity 
+    <Pressable
+      android_ripple={{ color: "#eee" }}
       activeOpacity={0.7} 
       onPress={handlePress} 
       {...props} 
     >
       {children}
-    </RNTouchableOpacity>
+    </Pressable>
   );
 };

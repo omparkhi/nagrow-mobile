@@ -46,7 +46,7 @@ export default function SlideToAct({ label, onComplete }) {
       <GestureDetector gesture={pan}>
         <Animated.View style={[styles.knob, knobStyle]}>
           <View style={styles.arrow}>
-          <Ionicons name="arrow-forward" size={30} color="#fff" />
+            <Ionicons name="arrow-forward" size={30} color="#16A34A" />
           </View>
         </Animated.View>
       </GestureDetector>
@@ -57,7 +57,7 @@ export default function SlideToAct({ label, onComplete }) {
 const styles = StyleSheet.create({
   container: {
     height: 60,
-    backgroundColor: "#ffffffff",
+    backgroundColor: "#16A34A",
     borderRadius: 20,
     justifyContent: "center",
     overflow: "hidden",
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     padding: 35
   },
   label: {
-    color: "#0f172a",
+    color: "#ffffff",
     fontSize: 18,
     position: "absolute",
     zIndex: 1,
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   knob: {
     height: 60,
     width: 60,
-    backgroundColor: "#111",
+    backgroundColor: "#ffffff",
     borderRadius: 20,
     position: "absolute",
     marginLeft: 5,
@@ -86,9 +86,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   arrow: {
-    
-    color: "white",
+    color: "#16A34A",
     fontSize: 22,
-
   },
 });

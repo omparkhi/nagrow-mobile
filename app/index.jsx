@@ -11,8 +11,21 @@ export default function HomeRedirector() {
       try {
         const token = await AsyncStorage.getItem("token");
         const userType = await AsyncStorage.getItem("userType");
+        const lastPath = await AsyncStorage.getItem("lastVisitedPath");
 
         if (token && userType) {
+
+          if (lastPath) {
+             // 2. SECURITY CHECK: Ensure the path belongs to this user type!
+             // Prevents a "User" from accidentally loading a "Rider" page
+             if (lastPath.startsWith(`/${userType}`)) {
+                 console.log(`🔄 Restoring Session: ${lastPath}`);
+                 router.replace(lastPath);
+                 return; // ✅ Stop here, we are done.
+             }
+          }
+
+          console.log("⚠️ No history found. Going to Dashboard.");
           switch (userType) {
             case "user":
               router.replace("/user/dashboard/dash");

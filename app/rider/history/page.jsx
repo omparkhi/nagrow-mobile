@@ -88,7 +88,12 @@ export default function OrderHistory() {
 const ListHeader = () => (
     <View style={styles.headerContainer}>
         {/* Premium Dark Summary Card */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingLeft: 20, paddingTop: 10 }}>
+          <Ionicons name="arrow-back" size={25} color="#0f172a" />
+          <AppText variant="small" style={{ fontSize: 18, color: "#0f172a" }}>History</AppText>
+        </View>
         <View style={styles.summaryCard}>
+          
             
             {/* Left: Earnings (Flex: 1) */}
             <View style={styles.statGroup}>

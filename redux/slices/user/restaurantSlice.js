@@ -26,7 +26,7 @@ export const fetchRestaurantById = createAsyncThunk(
     async (id, thunkAPI) => {
         try {
             const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/user/restaurant/${id}`);
-            console.log("API Response:", res.data);
+            // console.log("API Response:", res.data);
             return res.data;
         } catch (err) {
             return thunkAPI.rejectWithValue(err.response?.data?.message || "failed to fetch restaurant by id");
@@ -34,12 +34,26 @@ export const fetchRestaurantById = createAsyncThunk(
     }
 );
 
+export const fetchTopPicks = createAsyncThunk(
+    "restaurant/fetchTopPicks" ,
+    async (maxPrice, thunkAPI) => {
+        try {
+            const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/user/top-picks?maxPrice=${maxPrice}`);
+            // console.log(res.data.items);
+            return res.data.items;
+        } catch (err) {
+            return thunkAPI.rejectWithValue(err.response?.data?.message || "failed to fetch Top Picks");
+        }
+    }
+)
+
 const restaurantSlice = createSlice({
     name: "restaurants",
     initialState: {
         data: [],
         restaurant: null,
         menu: null,
+        topPicks: null,
         loading: false,
         error: null,
     },
@@ -71,6 +85,14 @@ const restaurantSlice = createSlice({
             .addCase(fetchRestaurantById.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+            })
+
+            //fetch restaurant top picks
+            .addCase(fetchTopPicks.fulfilled, (state, action) => {
+                state.topPicks = action.payload;
+            })
+            .addCase(fetchTopPicks.rejected, (state, action) => {
+                state.error = action.error;
             });
     },
 });

@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 
 let socket = null;
-const SOCKET_API = "http://192.168.1.3:3000"; // Replace with your IP
+const SOCKET_API = "http://10.106.78.222:3000"; // Replace with your IP
 
 export const connectSocket = (token) => {
     // 🛑 CRITICAL FIX: If socket object exists, RETURN IT.

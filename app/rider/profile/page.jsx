@@ -1,10 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
   View,
   StyleSheet,
   StatusBar,
   Image,
-  TouchableOpacity,
   Alert,
   Animated,
   Dimensions,
@@ -14,17 +13,25 @@ import { useSelector } from "react-redux";
 import AppText from "@/components/AppText";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useHeaderVisibility } from "@/app/context/HeaderVisibilityContext";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useBottomBarVisibility } from "@/app/context/NavBarVisibilityContext";
+import { useLayoutConfig } from "@/app/context/LayoutContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import RootWrapper from "@/app/rootWrapper";
+import { TouchableOpacity } from "@/app/TouchableOpacity";
+import { useRiderBottomBarVisibility } from "@/app/context/RiderNavBarVisiblityContext";
 
 const { width } = Dimensions.get("window");
 const HEADER_MAX_HEIGHT = 350; // Height of the Big Hero BG
-const HEADER_MIN_HEIGHT = Platform.OS === "ios" ? 95 : 80; // Height of Sticky Bar
+const HEADER_MIN_HEIGHT = Platform.OS === "ios" ? 110 : 100; // Height of Sticky Bar
 const SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 export default function RiderProfileScreen() {
   const router = useRouter();
-  const { setVisible } = useHeaderVisibility();
+  const { setVisible } = useRiderBottomBarVisibility();
   const { rider } = useSelector((state) => state.riderAuth);
+  const { setIsImmersive, setBottomSafeColor } = useLayoutConfig();
+  const insets = useSafeAreaInsets();
   
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -32,6 +39,19 @@ export default function RiderProfileScreen() {
     setVisible(false);
     return () => setVisible(true);
   }, []);
+
+      useFocusEffect(
+        useCallback(() => {
+          setIsImmersive(true);
+          setBottomSafeColor("white"); // Set bottom bar to white if needed
+    
+          return () => {
+            // 2. When Screen Unfocuses (Navigating away): Reset to Default
+            setIsImmersive(false);
+            setBottomSafeColor("white");
+          };
+        }, [])
+      );
 
   if (!rider) return null;
 
@@ -83,11 +103,12 @@ export default function RiderProfileScreen() {
   // ================= RENDER =================
 
   return (
+    <RootWrapper immersive={true} barStyle="light" bottombar={true}>
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+      {/* <StatusBar barStyle="light-content" backgroundColor="#0f172a" /> */}
 
       {/* 1. FIXED BACKGROUND IMAGE/COLOR */}
-      <View style={styles.fixedBackground}>
+      <View style={[styles.fixedBackground]}>
         {/* BIG CENTER PROFILE */}
         <Animated.View style={[styles.bigProfileContainer, { opacity: bigProfileOpacity, transform: [{ scale: bigProfileScale }] }]}>
             <View style={styles.avatarContainer}>
@@ -117,7 +138,7 @@ export default function RiderProfileScreen() {
       <Animated.View style={[styles.stickyHeader, { backgroundColor: "#0f172a", opacity: headerOpacity }]} />
       
       {/* Sticky Header CONTENT (Separate to handle interactions vs background opacity) */}
-      <View style={styles.stickyHeaderContent}>
+      <View style={[styles.stickyHeaderContent, { paddingTop: insets.top  }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
              <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
@@ -210,6 +231,7 @@ export default function RiderProfileScreen() {
         </View>
       </Animated.ScrollView>
     </View>
+    </RootWrapper>
   );
 }
 
@@ -253,7 +275,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 60,
     borderBottomRightRadius: 60,
     alignItems: 'center', justifyContent: 'center',
-    zIndex: 0
+    zIndex: 0,
   },
   bigProfileContainer: { alignItems: 'center' },
   avatarContainer: { padding: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 60, marginTop: -20 },
@@ -274,7 +296,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, left: 0, right: 0,
     height: HEADER_MIN_HEIGHT, zIndex: 100,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: Platform.OS === "ios" ? 40 : 10
+    paddingHorizontal: 20, paddingTop: Platform.OS === "ios" ? 40 : 10,
   },
   stickyInfo: {
     flexDirection: 'row', alignItems: 'center', flex: 1, marginLeft: 15,

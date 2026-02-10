@@ -15,7 +15,7 @@ import { fetchOrderById } from "@/redux/slices/restaurant/orderSlice";
 import { usePushNotification } from "@/hooks/usePushNotification";
 
 export default function RestaurantLayout () {
-    const { showToast } = useToast();
+    // const { showToast } = useToast();
     const dispatch = useDispatch();
     const { restaurant } = useSelector(state => state.restaurantAuth);
     // const { currentOrder, loading, error } = useSelector((state) => state.orders);
@@ -52,7 +52,7 @@ export default function RestaurantLayout () {
             const handleNewOrder = (data) => {
                 console.log("New Order Received:", data);
                 playNewOrderSound();
-                showToast(`Order ${data.orderNo}`, "New Order Received");
+                // showToast(`Order ${data.orderNo}`, "New Order Received");
                 dispatch(fetchOrderById(data._id));
             };
 
@@ -60,14 +60,14 @@ export default function RestaurantLayout () {
                 playNewOrderSound();
                 console.log("📢 Delivery Accepted by rider", data);
                 // alert(`Rider Assigned`);
-                showToast(`Order ${data.orderNo}`,`Rider Assigned`);
+                // showToast(`Order ${data.orderNo}`,`Rider Assigned`);
                 dispatch(fetchOrderById(data.orderId)); 
             };
             
             const handleOrderStatus = (data) => {
                 playOrderUpdateSound();
                 console.log("order status:", data);
-                showToast(`Order ${data.orderNo}`,`${data.status === "pick_up_by_rider" ? data.msg : `Your order is now ${data.status}`}`);
+                // showToast(`Order ${data.orderNo}`,`${data.status === "pick_up_by_rider" ? data.msg : `Your order is now ${data.status}`}`);
                 dispatch(fetchOrderById(data.orderId));
             }
 

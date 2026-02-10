@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import MapView, { Marker, Polyline, AnimatedRegion } from "react-native-maps";
 import { View, Image, Animated, Platform, Easing } from "react-native";
 import PolylineDecoder from "@mapbox/polyline";
@@ -8,15 +8,48 @@ import { setRouteFitted, setRouteCache, setRouteFetched } from "@/redux/slices/m
 import { calBearing } from "@/utils/calBearing";
 import { getSnapToRoadLocation } from "@/utils/snapUtils";
 import { TouchableOpacity } from "@/app/TouchableOpacity";
+import { generateCurvedPolyline } from "@/utils/curvePolyline";
+import { useLayoutConfig } from "../context/LayoutContext";
+import { useFocusEffect } from "expo-router";
+import RootWrapper from "../rootWrapper";
 
 // CONSTANTS
 const LATITUDE_DELTA = 0.0043;
 const LONGITUDE_DELTA = 0.0034;
 const ANIMATION_DURATION = 2000;
+const MIN_DISTANCE_METERS = 5;
 
-export default function DeliveryRouteMap({ origin, destination, riderLocation, order }) {
-  const dispatch = useDispatch();
+function getDistanceMeters(a, b) {
+  const R = 6371000;
+  const dLat = (b?.lat - a?.lat) * Math.PI / 180;
+  const dLng = (b?.lng - a?.lng) * Math.PI / 180;
+
+  const lat1 = a?.lat * Math.PI / 180;
+  const lat2 = b?.lat * Math.PI / 180;
+
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+
+  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+
+// function DeliveryRouteMap({ origin, destination, riderLocation, order, height = 440 }) 
+function DeliveryRouteMap({ 
+    routeOrigin,        // Dynamic Start (Rider)
+    routeDestination,   // Dynamic End (Rest or Home)
+    restaurantLocation, // Static Marker
+    customerLocation,   // Static Marker
+    riderLocation, 
+    order, 
+    height = 500 
+}) {
+  const dispatch = useDispatch(); 
+  const { setIsImmersive, setBottomSafeColor } = useLayoutConfig();
   const mapRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
+
   
   // Redux Selectors
   const { routeFetched, routeCache, routeFitted } = useSelector((s) => s.mapState);
@@ -24,12 +57,27 @@ export default function DeliveryRouteMap({ origin, destination, riderLocation, o
 
   // State & Refs
   const prevLocRef = useRef(null);
+  const prevDestRef = useRef(null);
   const [bearing, setBearing] = useState(0);
   const [routeCoords, setRouteCoords] = useState([]);
   const [follow, setFollow] = useState(true);
 
   // 1. PULSE ANIMATION (Corrected)
   const pulseAnim = useRef(new Animated.Value(0)).current;
+
+   useFocusEffect(
+      useCallback(() => {
+        setIsImmersive(true);
+        setBottomSafeColor("white"); // Set bottom bar to white if needed
+  
+        return () => {
+          // 2. When Screen Unfocuses (Navigating away): Reset to Default
+          setIsImmersive(false);
+          setBottomSafeColor("white");
+        };
+      }, [])
+    );
+  
 
   useEffect(() => {
     pulseAnim.setValue(0);
@@ -46,45 +94,66 @@ export default function DeliveryRouteMap({ origin, destination, riderLocation, o
   // Animated Coordinate for Smooth Movement
   const riderPos = useRef(
     new AnimatedRegion({
-      latitude: persistedLast?.lat ?? origin?.lat,
-      longitude: persistedLast?.lng ?? origin?.lng,
+      latitude: persistedLast?.lat ?? restaurantLocation?.lat,
+      longitude: persistedLast?.lng ?? restaurantLocation?.lng,
       latitudeDelta: LATITUDE_DELTA,
       longitudeDelta: LONGITUDE_DELTA,
     })
   ).current;
 
   // --- ROUTE FETCHING ---
-  useEffect(() => {
-    if (!origin || !destination) return;
+useEffect(() => {
+  if (!routeOrigin || !routeDestination || !mapReady) return;
 
-    const fitMap = (coords) => {
-        if (!routeFitted && mapRef.current) {
-            setTimeout(() => {
-                mapRef.current?.fitToCoordinates(coords, {
-                    edgePadding: { top: 80, right: 80, bottom: 80, left: 80 },
-                    animated: true,
-                })
-                dispatch(setRouteFitted());
-            }, 500);
-        }
-    };
+  const curve = generateCurvedPolyline(
+    routeOrigin,
+    routeDestination,
+    0.15, // curvature (play with this)
+    50    // smoothness
+  );
 
-    if (order?.routeInfo?.polyline) {
-        const points = order.routeInfo.polyline;
-        const decoded = PolylineDecoder.decode(points);
-        const coords = decoded.map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
-        setRouteCoords(coords);
-        dispatch(setRouteCache(coords));
-        dispatch(setRouteFetched());
-        fitMap(coords);
+  setRouteCoords(curve);
+
+//   // Fit map once
+//   if (!routeFitted && mapRef.current) {
+//     setTimeout(() => {
+//       mapRef.current.fitToCoordinates(curve, {
+//         edgePadding: { top: 80, right: 80, bottom: 80, left: 80 },
+//         animated: true,
+//       });
+//       dispatch(setRouteFitted());
+//     }, 300);
+//   }
+
+// Check if we switched phases (e.g. Destination changed from Rest -> Home)
+    // If we did, we allow the map to re-fit (zoom)
+    const destKey = `${routeDestination.lat}-${routeDestination.lng}`;
+    const shouldRefit = !routeFitted || (prevDestRef.current && prevDestRef.current !== destKey);
+
+    if (shouldRefit && mapRef.current) {
+        prevDestRef.current = destKey; // Update cache
+        setTimeout(() => {
+            mapRef.current?.fitToCoordinates(curve, {
+                edgePadding: { top: 80, right: 80, bottom: 80, left: 80 },
+                animated: true,
+            });
+            dispatch(setRouteFitted());
+        }, 300);
     }
-  }, [order?.routeInfo?.polyline]);
+// Note: We include routeOrigin in dependency so line updates as rider moves
+  }, [routeOrigin, routeDestination, mapReady]);
+
 
 
   // --- RIDER LOGIC (Point to Destination) ---
   useEffect(() => {
     if (!riderLocation?.lat || !riderLocation?.lng) return;
     if (routeCoords.length === 0) return;
+    if (prevLocRef.current) {
+  const dist = getDistanceMeters(prevLocRef.current, snappedLoc);
+  if (dist < MIN_DISTANCE_METERS) return; // 🚫 ignore noise
+}
+
     
     // 1. Snap to road
     const snappedLoc = getSnapToRoadLocation(riderLocation, routeCoords);
@@ -111,15 +180,22 @@ export default function DeliveryRouteMap({ origin, destination, riderLocation, o
     // 3. 🔴 FIX: CALCULATE BEARING TO DESTINATION
     // Instead of looking at history (which makes it spin), look at the goal.
     // This keeps the head steady towards the destination.
-    const newBearing = calBearing(snappedLoc, destination);
-    setBearing(newBearing);
+    const newBearing = calBearing(snappedLoc, routeDestination);
+    function smoothBearing(prev, next) {
+  if (prev === null) return next;
+  let diff = ((next - prev + 540) % 360) - 180;
+  return prev + diff * 0.2; // smoothing factor
+}
+   const smooth = smoothBearing(bearing, newBearing);
+setBearing(smooth);
+
 
     // 4. Camera Follow
     if (follow) {
       mapRef.current?.animateCamera({
         center: { latitude: snappedLoc.lat, longitude: snappedLoc.lng },
-        pitch: 45,
-        heading: newBearing , // Rotates map to face destination (GPS Style)
+        pitch: 35,
+        heading: smooth , // Rotates map to face destination (GPS Style)
         zoom: 17,
       }, { duration: ANIMATION_DURATION });
     }
@@ -128,18 +204,21 @@ export default function DeliveryRouteMap({ origin, destination, riderLocation, o
   }, [riderLocation, routeCoords]); // Added destination to dependency
 
 
-  if (!origin ) return null;
+  if (!routeOrigin ) return null;
 
   return (
+    <RootWrapper immersive={true} barStyle="dark" bottombar={true}>
     <View>
       <MapView
         ref={mapRef}
-        style={{ width: "100%", height: 440, borderRadius: 16 }}
+        onMapReady={() => setMapReady(true)}
+        style={{ width: "100%", height: height, borderRadius: 16 }}
         onPanDrag={() => setFollow(false)}
-        customMapStyle={defaultMapStyles}
+        userInterfaceStyle="light"
+        // customMapStyle={defaultMapStyles}
         initialRegion={{
-          latitude: origin.lat,
-          longitude: origin.lng,
+          latitude: restaurantLocation.lat,
+          longitude: restaurantLocation.lng,
           latitudeDelta: LATITUDE_DELTA,
           longitudeDelta: LONGITUDE_DELTA,
         }}
@@ -147,7 +226,7 @@ export default function DeliveryRouteMap({ origin, destination, riderLocation, o
         
         {/* 1. RESTAURANT (Start) */}
         <Marker 
-            coordinate={{ latitude: origin.lat, longitude: origin.lng }} 
+            coordinate={{ latitude: restaurantLocation.lat, longitude: restaurantLocation.lng }} 
             title="Restaurant"
             anchor={{ x: 0.5, y: 1 }} // Pin tip
         >
@@ -156,7 +235,7 @@ export default function DeliveryRouteMap({ origin, destination, riderLocation, o
 
         {/* 2. HOME (End) */}
         <Marker 
-            coordinate={{ latitude: destination?.lat, longitude: destination?.lng }} 
+            coordinate={{ latitude: customerLocation?.lat, longitude: customerLocation?.lng }} 
             title="Home"
             anchor={{ x: 0.5, y: 1 }} // Pin tip
         >
@@ -200,7 +279,16 @@ export default function DeliveryRouteMap({ origin, destination, riderLocation, o
 
         {/* ROUTE LINE */}
         {routeCoords.length > 0 && (
-          <Polyline coordinates={routeCoords} strokeWidth={4} strokeColor="#FF6D00" />
+          <Polyline 
+          coordinates={routeCoords} 
+          strokeWidth={2.5}
+          strokeColor="rgba(255, 109, 0, 0.7)" 
+          // strokeDasharray={[ 4, 8]} 
+          lineCap="round" 
+          lineJoin="round" 
+          geodesic={true}
+          />
+          
         )}
       </MapView>
 
@@ -214,5 +302,8 @@ export default function DeliveryRouteMap({ origin, destination, riderLocation, o
         </TouchableOpacity>
       )}
     </View>
+    </RootWrapper>
   );
 }
+
+export default React.memo(DeliveryRouteMap);

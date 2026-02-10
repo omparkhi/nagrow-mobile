@@ -153,7 +153,7 @@ export default function PremiumCard() {
 
 const styles = StyleSheet.create({
     screen: {
-        marginTop: 150,
+        // marginTop: 140,
         height: 120,
        
         // marginLeft: 10 

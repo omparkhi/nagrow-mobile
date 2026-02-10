@@ -21,6 +21,7 @@ import { Star } from "lucide-react-native";
 import { fontFamilies } from "@/constants/typography";
 import { useBottomBarVisibility } from "@/app/context/NavBarVisibilityContext";
 import EmptyFavorites from "./no-favorite";
+import Footer from "../Footer";
 
 const { height, width } = Dimensions.get("window");
 const STATUS_BAR_HEIGHT = Platform.OS === "android" ? StatusBar.currentHeight || 20 : 44;
@@ -162,9 +163,15 @@ export default function FavoritePage () {
                 ) : (
                     <EmptyFavorites />
                 )}
+
+                <View style={{ paddingTop: 50 }}>
+                <Footer />
+            </View>
                 
             </View>
+            
             </Animated.ScrollView>
+            
         </View>
     )
 }

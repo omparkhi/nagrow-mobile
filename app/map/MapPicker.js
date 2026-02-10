@@ -102,8 +102,8 @@ useEffect(() => {
           />
         </View>
 
-        <View style={{position: "absolute",  backgroundColor: "#ffffffff" , bottom: 50, marginHorizontal: 18, borderRadius: 20, width: "90%",  shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 6, elevation: 3}}>
-          <AppText variant="small" style={{ color: "#424040ff", paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#f1dfd4d7" ,  borderTopLeftRadius: 20, borderTopRightRadius: 20  }}>Move map to select location</AppText>
+        <View style={{position: "absolute",  backgroundColor: "#ffffffff" , bottom:10, marginHorizontal: 18, borderRadius: 20, width: "90%",  shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 6, elevation: 3}}>
+          <AppText variant="small" style={{ color: "#424040ff", paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#f1dfd490" ,  borderTopLeftRadius: 20, borderTopRightRadius: 20  }}>Move map to select location</AppText>
           <AppText variant="light" style={{padding: 10, fontSize: 15, color: "#494646e2"}}>{address}</AppText>
             <View style={{ flexDirection: "row", gap: 3, margin: "auto", paddingBottom: 10 }}>
           <TouchableOpacity

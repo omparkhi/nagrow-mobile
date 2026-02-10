@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Linking } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Linking, Platform } from "react-native";
 import { TouchableOpacity } from "@/app/TouchableOpacity";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchRiderOrder, updateRiderOrderStatus } from "@/redux/slices/rider/riderOrderSlice";
@@ -24,29 +24,56 @@ import DeliverySuccessModal from "./DeliverySuccessModal";
 import { useRouter } from "expo-router";
 import { playDeliverySuccessSound } from "@/hooks/notification";
 import NoLiveOrder from "@/assets/Empty-Cart.json";
+import * as Location from 'expo-location';
+import { Label } from "@react-navigation/elements";
+// import { useDliveryOrder } from "@/hooks/useDeliveryOrder";
+import { useDeliveryOrder } from "@/hooks/useDeliveryOrder";
+import MapView from "./MapView";
+import DeliveryActionArea from "./DeliveryActionArea";
+import OrderDetailsCard from "./OrderDetailsCard";
+import { useBottomBarVisibility } from "@/app/context/NavBarVisibilityContext";
+import { useRiderBottomBarVisibility } from "@/app/context/RiderNavBarVisiblityContext";
 
 export default function DeliveryOrderPage () {
-  const [minsToPickup, setMinsToPickup] = useState(0);
+  const {setVisible} = useRiderBottomBarVisibility();
+  const { 
+    order, loading, loadingStatus, riderCoords, eta, remainingMeters,
+    minsToPickup, showSuccessModal, showCodPopup, setShowCodPopup,
+    handleNavigation, updateStatus, finishDelivery 
+  } = useDeliveryOrder();
+  // const [minsToPickup, setMinsToPickup] = useState(0);
   const router = useRouter();
   const [showSuccess, setShowSuccess] = useState(false);
   const [popup, setPopup] = useState(false);
   const { lastLocation } = useSelector((state) => state.riderLocation);
+  // const sheetRef = useRef(null);
+  // const snapPoints = useMemo(() => ["40%","75%", "85%", "100%"], []);
+  // const { setVisible } = useHeaderVisibility();
+
   const sheetRef = useRef(null);
-  const snapPoints = useMemo(() => ["40%","75%", "85%", "100%"], []);
-  const { setVisible } = useHeaderVisibility();
+  const snapPoints = useMemo(() => ["35%", "50%"], []);
+  // const { setVisible } = useHeaderVisibility();
+
+    // useEffect(() => {
+    //   setVisible(true);     
+    //   return () => setVisible(false);  
+    // }, []);
+
   useEffect(() => {
-    setVisible(false);     // Hide header
-    return () => setVisible(true);  // Show header again when leaving page
+    setVisible(false);     // Hide navbar
+    return () => setVisible(true);  // Show navbar again when leaving page
   }, []);
+  // React.useEffect(() => { setVisible(false); return () => setVisible(true); }, []);
+
   const dispatch = useDispatch();
-    const [riderCoords, setRiderCoords] = useState(null);
+    // const [riderCoords, setRiderCoords] = useState(null);
     const [prevLocation, setPrevLocation] = useState(null);
     const { rider } = useSelector(state => state.riderAuth);
     const riderId = rider?._id;
     const orderId = rider?.currentOrderId;
   
-  const { order, loading, loadingStatus } = useSelector((state) => state.riderOrder);
-  const { eta, remainingMeters } = useSelector((state) => state.mapState);
+  // const { order, loading, loadingStatus } = useSelector((state) => state.riderOrder);
+  // const { eta, remainingMeters } = useSelector((state) => state.mapState);
     // useEffect(() => {
     //     // console.log("rider:", rider);
     //     console.log("orderTd:", orderId);
@@ -55,6 +82,10 @@ export default function DeliveryOrderPage () {
     dispatch(fetchRiderOrder(orderId));
   }, [dispatch, orderId]);
 
+  const handleVerifyPress = () => {
+    router.push("/rider/delivery/VerifyOrder")
+  }
+
   function calculateHeading(prev, current) {
     const dx = current.lng - prev.lng;
     const dy = current.lat - prev.lat;
@@ -62,27 +93,68 @@ export default function DeliveryOrderPage () {
   }
 
 
-useEffect(() => {
-  const socket = getSocket();
-  const handler = (data) => {
-    const coords = data.coords ?? data;
-    console.log("coords from backend socket for rider:", coords);
-    if (!order) return;
-    // const heading = prevLocation ? calculateHeading(prevLocation, coords) : 0;
+// useEffect(() => {
+//   const socket = getSocket();
+//   const handler = (data) => {
+//     const coords = data.coords ?? data;
+//     console.log("coords from backend socket for rider:", coords);
+//     if (!order) return;
+//     // const heading = prevLocation ? calculateHeading(prevLocation, coords) : 0;
 
-    // const location = { lat: coords.lat, lng: coords.lng, heading };
-    const location = { lat: coords.lat, lng: coords.lng };
+//     // const location = { lat: coords.lat, lng: coords.lng, heading };
+//     const location = { lat: coords.lat, lng: coords.lng };
 
-    setRiderCoords(location);
-    setPrevLocation(coords);
+//     setRiderCoords(location);
+//     setPrevLocation(coords);
 
-    // persist last location in Redux so map can restore after refresh
-    dispatch(saveLastRiderLocation(location))
-  }
-  socket.on("rider:location", handler);
+//     // persist last location in Redux so map can restore after refresh
+//     dispatch(saveLastRiderLocation(location))
+//   }
+//   socket.on("rider:location", handler);
 
-  return () => socket.off("rider:location", handler);
-}, [dispatch]);
+//   return () => socket.off("rider:location", handler);
+// }, [dispatch]);
+
+// useEffect(() => {
+//   const socket = getSocket();
+
+//   // 1. ⚡ INITIAL LOAD: Get current location immediately (Don't wait for BG update)
+//   const fetchInitialLocation = async () => {
+//     try {
+//       const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+//       const initialLoc = { lat: coords.latitude, lng: coords.longitude };
+//       console.log("📍 Initial Map Location:", initialLoc);
+//       setRiderCoords(initialLoc);
+//       dispatch(saveLastRiderLocation(initialLoc));
+//     } catch (e) {
+//       console.log("Error getting initial map loc:", e);
+//     }
+//   };
+
+//   fetchInitialLocation();
+
+//   // 2. 📡 LIVE UPDATES: Listen to the "ETA" event from Backend
+//   // The Backend sends: { riderLoc: { lat, lng }, etaMinutes, ... }
+
+//   const handler = (data) => {
+//     console.log("📡 BG Update Received:", data);
+
+//     if (data.riderLoc) {
+//       const location = { lat: data.riderLoc.lat, lng: data.riderLoc.lng };
+//       setRiderCoords(location);
+
+//       // Save to Redux so map persists
+//         dispatch(saveLastRiderLocation(location));
+//     }
+//   };
+
+//   // ✅ LISTEN TO THE CORRECT EVENT
+//   socket.on("order:eta:update", handler);
+
+//   return () => {
+//       socket.off("order:eta:update", handler);
+//   };
+// }, [dispatch]);
 
 
 // 4. ✅ FORCE REFRESH ON STATUS CHANGE
@@ -98,23 +170,23 @@ useEffect(() => {
     Linking.openURL(`tel:${phone}`);
   };
 
-  // ✅ NEW: Timer Logic (Updates every 30s)
-useEffect(() => {
-  const updatePickupTimer = () => {
-    // Only calculate if we are in the "Pickup" phase
-    if (!order?.targetReadyTime || order.status === "on the way" || order.status === "delivered") return;
+//   // ✅ NEW: Timer Logic (Updates every 30s)
+// useEffect(() => {
+//   const updatePickupTimer = () => {
+//     // Only calculate if we are in the "Pickup" phase
+//     if (!order?.targetReadyTime || order.status === "on the way" || order.status === "delivered") return;
 
-    const deadline = new Date(order.targetReadyTime).getTime();
-    const now = Date.now();
-    // Calculate minutes remaining
-    const diff = Math.ceil((deadline - now) / 60000);
-    setMinsToPickup(diff);
-  };
+//     const deadline = new Date(order.targetReadyTime).getTime();
+//     const now = Date.now();
+//     // Calculate minutes remaining
+//     const diff = Math.ceil((deadline - now) / 60000);
+//     setMinsToPickup(diff);
+//   };
 
-  updatePickupTimer(); // Run immediately
-  const interval = setInterval(updatePickupTimer, 30000);
-  return () => clearInterval(interval);
-}, [order]);
+//   updatePickupTimer(); // Run immediately
+//   const interval = setInterval(updatePickupTimer, 30000);
+//   return () => clearInterval(interval);
+// }, [order]);
 
 // ✅ NEW: Helper to get color based on urgency
 const getPickupColor = () => {
@@ -123,38 +195,46 @@ const getPickupColor = () => {
     return "#3B82F6"; // Blue (Plenty of time)
 };
 
-const getPickupText = (status) => {
-    // 1. Kitchen is done
-    if (status === "ready") {
-        return "Food is ready! Head inside to pick up the order.";
-    }
+// const getPickupText = (status) => {
+//     // 1. Kitchen is done
+//     if (status === "ready") {
+//         return "Food is ready! Head inside to pick up the order.";
+//     }
 
-    // 2. Rider just marked 'Picked Up' (Waiting to slide 'Start Delivery')
-    if (status === "pick_up_by_rider") {
-        return "Order collected! Please start the ride.";
-    }
+//     // 2. Rider just marked 'Picked Up' (Waiting to slide 'Start Delivery')
+//     if (status === "pick_up_by_rider") {
+//         return "Order collected! Please start the ride.";
+//     }
 
-    // 3. Rider is driving to customer
-    if (status === "on the way") {
-        return "You are on the way to the drop location.";
-    }
+//     // 3. Rider is driving to customer
+//     if (status === "on the way") {
+//         return "You are on the way to the drop location.";
+//     }
 
-    // 4. Delivery Complete
-    if (status === "delivered") {
-        return "Great job! Order delivered successfully.";
-    }
+//     // 4. Delivery Complete
+//     if (status === "delivered") {
+//         return "Great job! Order delivered successfully.";
+//     }
 
-    // 5. Default (Cooking Phase)
-    if (minsToPickup <= 0) return "Food should be ready any moment now.";
-    return `Food ready in ~${minsToPickup} mins`;
-};
+//     // 5. Default (Cooking Phase)
+//     if (minsToPickup <= 0) return "Food should be ready any moment now.";
+//     return `Food ready in ~${minsToPickup} mins`;
+// };
+
+const handleBack = () => {
+  if (router.back()) {
+       router.back();
+  } else {
+       router.push("/rider/dashboard/dash")
+  }
+}
 
 
   if (loading || !order)
     return ( 
     <>
       <TouchableOpacity
-        onPress={() => router.back()}
+        onPress={handleBack}
         style={{ padding: 15 }}
       >
         <Ionicons name="arrow-back" size={25} color="#000000ff" />
@@ -187,6 +267,41 @@ const getPickupText = (status) => {
       // We do NOT resetMapState() here. We wait for "Next Order" button.
     }
   }
+
+  // handle navigation to map
+  // const handleNavigation = () => {
+  //   if (!order) return;
+
+  //   let lat, lng, label;
+  //   const status = order?.status;
+
+  //   // CASE 1: Going to Restaurant (Pickup Phase)
+  //   if (["accepted", "preparing", "ready"].includes(status)) {
+  //     lat = order.restaurantId.address.location.coordinates[1];
+  //     lng = order.restaurantId.address.location.coordinates[0];
+  //     label = order.restaurantId.name;    
+  //   }
+
+  //   // CASE 2: Going to Customer (Delivery Phase)
+  //   else if (["pick_up_by_rider", "on the way"].includes(status)) {
+  //     lat = order.deliveryAddress.coordinates[1];
+  //     lng = order.deliveryAddress.coordinates[0];
+  //     label = "Customer Location";
+  //   }
+
+  //   // CASE 3: Done
+  //   else {
+  //       Alert.alert("Navigation", "Order is already completed.");
+  //       return;
+  //   }
+
+  //   const url = Platform.select({
+  //     ios: `maps:0,0?q=${label}@${lat},${lng}`,
+  //     android: `google.navigation:q=${lat},${lng}`
+  //   });
+
+  //   Linking.openURL(url).catch(err => console.error('An error occurred', err));
+  // };
 
   const handleUpdate = (status) => {
     if (status === "delivered") {
@@ -252,6 +367,7 @@ const getPickupText = (status) => {
   return null;
 };
 
+  const isPickupPhase = ["accepted", "preparing", "ready"].includes(order.status);
 
   const restaurantLocation = { 
     lat: order?.restaurantId?.address?.location?.coordinates[1], 
@@ -262,7 +378,13 @@ const getPickupText = (status) => {
     ? { lat: riderCoords.lat, lng: riderCoords.lng, heading: riderCoords.heading }
     : null; 
 
-  const deliveryLocation = { lat: order?.deliveryAddress?.coordinates[1], lng: order?.deliveryAddress?.coordinates[0] }
+  const deliveryLocation = { 
+    lat: order?.deliveryAddress?.coordinates[1], 
+    lng: order?.deliveryAddress?.coordinates[0] 
+  }
+
+  const routeOrigin = riderLocation;
+  const routeDestination = isPickupPhase ? restaurantLocation : deliveryLocation;
   // const destination = ["pick_up_by_rider", "on the way", "delivered"].includes(order.status)
   //   ? deliveryLocation
   //   : restaurantLocation;
@@ -273,7 +395,7 @@ const getPickupText = (status) => {
   return (
     < >
 
-    { riderLocation ?
+    {/* { riderLocation ?
         <DeliveryRouteMap
         origin={restaurantLocation}
         destination={deliveryLocation}
@@ -283,226 +405,80 @@ const getPickupText = (status) => {
       
     : <View style={{ top: "25%" }}> <ActivityIndicator size="large" /> </View>
     
-    }
+    } */}
+
+    {/* 👇 INSERT THIS BUTTON BLOCK HERE 👇 */}
+    {/* <TouchableOpacity 
+        style={styles.navFab} 
+        onPress={handleNavigation}
+        activeOpacity={0.8}
+    >
+        <View style={styles.navIconContainer}>
+            <Ionicons name="navigate" size={28} color="#fff" style={{ transform: [{rotate: '-45deg'}] }} />
+        </View>
+        <AppText variant="small" style={styles.navText}>Navigate</AppText>
+    </TouchableOpacity> */}
+    {/* 👆 END INSERT 👆 */}
     
-        <View style={{ top: -140}}>
+        {/* <View style={{ top: -140}}>
       <ETAInfoCard
         title="Arriving in.."
         etaMinutes={eta}
         remainingMeters={remainingMeters}
       />
-    </View>
-    {/* <Image source={TestMap} style={{ height: "100%", width:"100%", position: "absolute" }}/> */}
-    <BottomSheet
-      // style={styles.container}
-      ref={sheetRef}
-      snapPoints={snapPoints}
-      enablePanDownToClose={false}
-      index={0}  // start collapsed
-      backgroundStyle={{ backgroundColor: "#f8f8f8d4" }}
-    >
+    </View> */}
 
-    <BottomSheetScrollView style={styles.container}>
-
-      <View style={styles.scrollContent}>
-        <View style={styles.trackingCard}>
-  <View style={{ flexDirection: "column" }}>
-    <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderStyle: "dotted", borderBottomColor: "#d7d3d3ff" }}>
-    <View style={{ backgroundColor: "#f8f8f8ff", borderRadius: 10, marginBottom: 5 }}>
-      <LottieView
-        source={DeliveryFood}
-        autoPlay
-        loop
-        style={{ width: 50, height: 50 }}
-      />
-    </View>
-    <View style={{ flexDirection: "column",  marginLeft: 10, }}>
-      <AppText variant="small" style={{ fontSize: 18, color: "#0f172a" }}>
-        ONGOING LIVE ORDER
-      </AppText>
-    <AppText variant="small" style={{ fontSize: 14, color: "#78797cff", marginTop: -3}}>{order?.orderNo}</AppText>
-    </View>
-    </View>
-    <View style={{ flexDirection: "column",   flex: 1 }}>
-      {/* ✅ NEW: Dynamic Pickup Timer (Only show before 'On the Way') */}
-      {["accepted", "preparing", "ready", "pick_up_by_rider"].includes(order.status) && order.targetReadyTime && (
-         <View style={{ flexDirection: 'column', alignItems: "center", marginTop: 4, position: "relative" }}>
-            <View style={{ flexDirection: 'row', position: "absolute" }}>
-              <Ionicons name="time-outline" size={14} color={getPickupColor()} style={{ marginRight: 4 }} />
-            <AppText variant="small" style={{ color: getPickupColor(), fontSize: 13,  }}>
-                {getPickupText(order.status)}
-            </AppText>
-            </View>
-            {/* Optional: Absolute Time */}
-            <AppText variant="small" style={{ color: "#94a3b8", fontSize: 11, marginLeft: 6, marginTop: 17 }}>
-               (Pick Parcel By {new Date(order.targetReadyTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})
-            </AppText>
-         </View>
-      )}
+    <MapView 
+      order={order}
+      riderCoords={riderLocation}
+      routeOrigin={routeOrigin}
+      routeDestination={routeDestination}
+      restaurantLocation={restaurantLocation}
+      customerLocation={deliveryLocation}
+      eta={eta}
+      remainingMeters={remainingMeters}
       
-    </View>
-  </View>
-</View>
-
-        {/* <View style={{ flexDirection: "column", alignItems: "center", marginLeft: 10 }}> */}
-        {/* <AppText variant="small" style={{ fontSize: 17, color: "#64748b" }}>Pickup the order from Restaurant</AppText> */}
-        
-        {/* <AppText variant="light" style={{ fontSize: 12 }}>Comming within 30 min</AppText> */}
-        {/* </View> */}
-      <View style={styles.trackingCard}>
-             {/* <MapPin size={32} color="green" fill="green" /> */}
-             <View style={{ flexDirection: "row", alignItems: "center", color: "#000", paddingRight: 30 }}>
-                <Ionicons name="location" size={28} color="#0f172a" />
-                <View>
-                    <AppText variant="small" style={{ fontSize: 15, color: "#0f172a", marginLeft: 7 }}>{order?.restaurantId?.name.toUpperCase()} - {order?.restaurantId?.address.street}</AppText>
-                    <AppText variant="light" style={{ fontSize: 13, color: "#64748b", marginLeft: 7, top: -2 }}>Restaurant</AppText>
-                </View>
-             </View>
-             <View style={{ height: 27, borderLeftWidth: 1, borderStyle: "dashed", borderColor: "#0f172a", marginLeft: 13 }}></View>
-             <View style={{ flexDirection: "row", alignItems: "center", color: "#000", paddingRight: 30 }}>
-             <MaterialIcons name="home" size={28} color="#0f172a"  />
-                <View>
-                    <AppText variant="small" style={{ fontSize: 15, color: "#0f172a", marginLeft: 7 }} numberOfLines={1}>{order?.userId?.firstName} {order?.userId?.lastName} - {order?.deliveryAddress?.fullAddress}</AppText>
-                    <AppText variant="light" style={{ fontSize: 13, color: "#64748b", marginLeft: 7, top: -2 }}>Delivery Address</AppText>
-                </View>
-            </View>
-        </View>
-      {/* Customer
-      <View style={styles.card}>
-        <Text style={styles.title}>Customer</Text>
-        <Text>{order.userId.name}</Text>
-        <Text>{order.userId.phone}</Text>
-      </View> */} 
-
-  <View style={styles.trackingCard}>
-    {/* SECTION 1: Header Row (Icon + Title + Price) */}
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: 5, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: "#64748b", borderStyle: "dotted" }}>
-    
-      {/* Left Side: Icon & Label */}
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <View style={{ width: 40, height: 40, borderRadius: 25, backgroundColor: "#0f172a", justifyContent: "center", alignItems: "center" }}>
-          <MaterialCommunityIcons name="package-variant-closed" size={24} color="#fff" />
-        </View>
-        <AppText variant="small" style={{ fontSize: 15, color: "#0f172a", marginLeft: 10 }}>
-          PACKAGE DETAILS
-        </AppText>
-      </View>
-
-      {/* Right Side: Price Badge */}
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#0f172a", borderRadius: 8 }}>
-        <MaterialIcons name="currency-rupee" size={16} color="#ffffff" />
-        <AppText variant="small" style={{ color: "#ffffff" }}>
-          {order?.totalAmount}
-        </AppText>
-      </View>
-    </View>
-
-    {/* SECTION 2: Items List (Below the header) */}
-    <View style={{ paddingHorizontal: 4 }}>
-      {order.items.map((i) => (
-        <View key={i._id} style={{ marginBottom: 8, borderBottomWidth: 1, borderBottomColor: "#f1f5f9", paddingBottom: 8 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          
-            {/* Item Name */}
-            <AppText variant="small" style={{ fontSize: 14, color: "#334155", flex: 1 }}>
-              {i.menuItemId.name}
-            </AppText>
-          
-            {/* Quantity */}
-            <AppText variant="small" style={{ fontSize: 14, color: "#64748b" }}>
-              x {i.quantity}
-            </AppText>
-          </View>
-        </View>
-      ))}
-    </View>
-
-    {/* SECTION 3: COD Warning (Bottom) */}
-    {order?.paymentStatus === "pending" && order?.paymentType === "cod" && (
-      <View style={{ marginTop: 4, backgroundColor: "#fffbe6", padding: 8, borderRadius: 6, borderWidth: 1, borderColor: "#ffe58f" }}>
-        <AppText variant="small" style={{ fontSize: 11, color: "#d48806", textAlign: "center" }}>
-          ⚠️ YOU HAVE TO COLLECT PAYMENT OF ₹{order?.totalAmount}
-        </AppText>
-      </View>
-    )}
-
-  </View>
-
-              <View style={styles.customerCard}>
-          <View style={{ flexDirection: "row", alignItems: "center"}} >
-            <View style={{height: 40, width: 40, borderRadius: 25, backgroundColor: "#0f172a", justifyContent: "center", alignItems: "center" }}>
-              {/* <LottieView
-                source={Profile}
-                autoPlay
-                loop
-                style={{ width: 60, height: 60 }}
-              /> */}
-              <Ionicons name="person-circle-outline" size={30} color="#fff" />
-              {/* <Feather name="user" size={28} color="#ffffffff" /> */}
-            </View>                    
-            <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 10, }}>
-              <View >
-              <AppText variant="small" style={{ fontSize: 15, color: "#0f172a" }}>{order?.userId?.firstName.toUpperCase()} {order?.userId?.lastName.toUpperCase()}</AppText>
-              <AppText variant="small" style={{ fontSize: 15, color: "#0f172a" }}>+91-{order?.userId.phone}</AppText> 
-              </View>
-              <TouchableOpacity style={styles.callbtn} onPress={() => handlecall(order?.userId.phone)} >
-                <Ionicons name="call" size={18} color="#fff" />
-              </TouchableOpacity>
-              {/* <AppText variant="light" style={{ fontSize: 12 }}>Comming within 30 min</AppText> */}
-              {/* <AppText variant="small" style={styles.heading}>Order No. {order.orderId}</AppText> */}
-            </View>            
-          </View >
-        </View>
-
-      {/* Restaurant */}
-      {/* <View style={styles.card}>
-        <Text style={styles.title}>Pickup From</Text>
-        <Text>{order.restaurantId.name}</Text>
-        {/* <Text>{order.restaurantId.address}</Text> */}
-      {/* </View> */} 
-
-      {/* Items */}
-      {/* <View style={styles.card}>
-        <Text style={styles.title}>Items</Text>
-        {order.items.map((i) => (
-          <Text key={i._id}>{i.menuItemId.name} × {i.qty}</Text>
-        ))}
-      </View>
-
-      {/* Status */}
-      {/* <View style={styles.card}>
-        <Text style={styles.title}>Status</Text>
-        <Text style={styles.status}>{order.status.toUpperCase()}</Text>
-      </View> */} 
-
-
-      </View>
-    </BottomSheetScrollView>
-
+    />
+    {/* <Image source={TestMap} style={{ height: "100%", width:"100%", position: "absolute" }}/> */}
+    <BottomSheet ref={sheetRef} snapPoints={snapPoints} enablePanDownToClose={false} index={0} backgroundStyle={{ backgroundColor: "#f8f8f8d4" }} >
+      <BottomSheetScrollView style={styles.container}>
+          <OrderDetailsCard order={order} minsToPickup={minsToPickup} onNavigate={handleNavigation} />
+      </BottomSheetScrollView>
     </BottomSheet>
               {/* Action Button */}
-      <View style={styles.stickySlideButton}>
+      {/* <View style={styles.stickySlideButton}>
         {renderSlideAction()}
+      </View> */}
+
+      <View style={{ position: "absolute", bottom: 5, left: 16, right: 16 }}>
+        <DeliveryActionArea 
+          status={order.status}
+          loading={loadingStatus}
+          onUpdateStatus={updateStatus}
+          orderNo={order.orderNo}
+          isVerifyPage={false}
+          onVerifyPress={handleVerifyPress}
+        />
       </View>
 
       {/* RENDER POPUP HERE */}
       <CashCollectPopup 
-        visible={popup} 
-        onClose={() => setPopup(false)} 
+        visible={showCodPopup} 
+        onClose={() => setShowCodPopup(false)} 
         totalAmount={order?.totalAmount} 
         statusUpdate={() => {
-            setPopup(false); // Close popup
-            processUpdate("delivered"); // Trigger API
+            setShowCodPopup(false); // Close popup
+            updateStatus("delivered", true); // Trigger API
         }} 
       />
 
        {/* delivery success modal */}
        <DeliverySuccessModal
-        visible={showSuccess}
+        visible={showSuccessModal}
         earnings={order?.deliveryFee}
-        distance={order?.distanceKm || 3.5}
+        distance={order?.distanceKm}
         duration={Math.round(eta)}
-        onHomePress={handleFinishDelivery}
+        onHomePress={finishDelivery}
        />
     </>
   );
@@ -581,6 +557,39 @@ loadingContainer: {
     shadowOpacity: 0.1,
     flexDirection: "row", // Optional: if you want text next to loader
     gap: 10
+  },
+
+  navFab: {
+    position: 'absolute',
+    top: 50, // Adjust based on your header height
+    right: 16,
+    zIndex: 20, // Ensure it sits above the map
+    alignItems: 'center',
+  },
+  navIconContainer: {
+    width: 55,
+    height: 55,
+    borderRadius: 30,
+    backgroundColor: '#3b82f6', // Google Maps Blue
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8, // Shadow for Android
+    shadowColor: '#000', // Shadow for iOS
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    borderWidth: 2,
+    borderColor: '#fff'
+  },
+  navText: {
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    overflow: 'hidden'
   }
    // leave space for sticky button
 });

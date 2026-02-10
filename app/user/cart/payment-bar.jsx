@@ -1,11 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { CreditCard, Smartphone, Wallet, BadgeIndianRupee } from "lucide-react-native";
 import AppText from "@/components/AppText";
 import { LinearGradient } from "expo-linear-gradient";
 import { TouchableOpacity } from "@/app/TouchableOpacity";
 
-export default function PaymentBar({ method, onPayOnline, onPayCOD, grandTotal }) {
+export default function PaymentBar({ method, onPayOnline, onPayCOD, grandTotal, loading }) {
   return (
     <LinearGradient
         colors={['#d8f8d8ff', 'rgba(255,255,255,0)']} 
@@ -20,12 +20,21 @@ export default function PaymentBar({ method, onPayOnline, onPayCOD, grandTotal }
       {/* BUTTONS */}
       <View style={styles.buttonWrapper}>
         {method === "online" ? (
-          <TouchableOpacity style={styles.payButton} onPress={onPayOnline}>
-            <AppText variant="small" style={styles.payText}>Proceed To Pay</AppText>
+          <TouchableOpacity style={[ styles.payButton, loading && { opacity: 0.7 } ]} disabled={loading} onPress={onPayOnline}  >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" style={{ width: 100 }}  />
+            ) : (
+              <AppText variant="small" style={styles.payText}>Proceed To Pay</AppText>
+            )}
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.payButton} onPress={onPayCOD}>
-            <AppText variant="small" style={styles.payText}>Place COD Order</AppText>
+          <TouchableOpacity style={[ styles.payButton, loading && { opacity: 0.7 } ]} disabled={loading} onPress={onPayCOD}>
+            {/* <AppText variant="small" style={styles.payText}></AppText> */}
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" style={{ width: 100 }} />
+            ) : (
+              <AppText variant="small" style={styles.payText}>Place COD Order</AppText>
+            )}
           </TouchableOpacity>
         )}
       </View>

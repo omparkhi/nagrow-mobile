@@ -30,6 +30,7 @@ import { TouchableOpacity } from "@/app/TouchableOpacity";
 
 export default function CartPage () {
   const router = useRouter();
+  const [isPaying, setIsPaying] = useState(false);
   const { setVisible } = useBottomBarVisibility();
   const [deliveryLoading, setDeliveryLoading] = useState(false);
   const [addressReady, setAddressReady] = useState(false);
@@ -49,7 +50,7 @@ export default function CartPage () {
 
     // const restaurantId = restaurant?._id;
 
-    console.log("CartPage route id:", restaurantId);
+    // console.log("CartPage route id:", restaurantId);
 
 
     const { selectedAddress } = useSelector(
@@ -141,7 +142,7 @@ useEffect(() => {
 
     // delivery fee using distance Matrix api 
     useEffect(() => {
-      console.log("userid: ", userId, "restaurantId: ", restaurantId)
+      // console.log("userid: ", userId, "restaurantId: ", restaurantId)
       if (!userId || !restaurantId) return;
   //     if (!userId || !restaurantId) {
   //   console.log("Missing IDs => ", { userId, restaurantId });
@@ -190,6 +191,33 @@ useEffect(() => {
       selectedAddress,
     });
 
+    const handlePayOnlineSafe = async () => {
+  if (isPaying) return;
+
+  try {
+    setIsPaying(true);
+    await handlePaymentOnline();
+  } catch (err) {
+    console.log("Payment error:", err);
+  } finally {
+    setIsPaying(false);
+  }
+};
+
+const handlePayCodSafe = async () => {
+  if (isPaying) return;
+
+  try {
+    setIsPaying(true);
+    await handleOrderCod();
+  } catch (err) {
+    console.log("COD error:", err);
+  } finally {
+    setIsPaying(false);
+  }
+};
+
+
 
     useEffect(() => {
   if (cart.items.length === 0) {
@@ -208,11 +236,14 @@ const isCheckoutLoading =
   !restaurant ||
   !addressReady ||
   deliveryLoading;
-console.log("loading", loading, restaurant === restaurant, addressReady, deliveryLoading)
+// console.log("loading", loading, restaurant === restaurant, addressReady, deliveryLoading)
 
 if (isCheckoutLoading) {
   return (
     <View style={{ height: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <TouchableOpacity onPress={() => router.push("user/dashboard/dash")}>
+        <AppText>Back</AppText>
+      </TouchableOpacity>
       <LottieView
         source={CheckoutLoader}
         autoPlay
@@ -223,42 +254,43 @@ if (isCheckoutLoading) {
   )
 }
 
-// if (loading) {
-//     return (
-//       <View>
-//         <ActivityIndicator size="small" color="#ff5733" />
-//         <AppText >loading address ...</AppText>
-//       </View>
-//     );
-//   }
 
-// if (!selectedAddress) {
-//     return <AppText >No address found</AppText>;
-//   }
+
 
 if (!cart.items.length) return <NoCartFound />;
 
 
     return (
+      // <RootWrapper bottomSafeAreaColor="white">
         <View style={{ flex: 1 }}>
             {/* <RestaurantHeader restaurant={restaurant} /> */}
             {/* <RootWrapper bg="#ffffffff" topSafeAreaColor="white" bottomSafeAreaColor="white"  barStyle="light" > */}
           <View style={styles.pageHeader} >
-            <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 15 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 15, paddingRight: 20 }}>
               <TouchableOpacity onPress={() => router.back()}>
                 <Ionicons name="arrow-back" size={23} color="#747474ff" />
               </TouchableOpacity>
-                <AppText variant="light" style={styles.pageTitle}>{restaurant.name}</AppText>
+                <AppText variant="small" style={styles.pageTitle}>{restaurant?.name}</AppText>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: -5, gap: 5, marginLeft: 26 }}>
-              <TouchableOpacity onPress={() => router.back()} style={{ paddingLeft: 16, }}>
-                <MaterialIcons name="home" size={20} color="#000"  />
-              </TouchableOpacity>
-                <AppText variant="small" style={{ color: "#000" }}>Home | <AppText variant="light" style={{ color: "#464646ff", fontSize: 12 }}>{selectedAddress.fullAddress}</AppText></AppText>
+  <MaterialIcons name="home" size={18} color="#000" />
 
-            </View>
+  <AppText variant="small" style={{ color: "#000" }}>
+    Home |
+  </AppText>
+
+  <AppText
+    variant="small"
+    numberOfLines={1}
+    ellipsizeMode="tail"
+    style={{ color: "#464646ff", fontSize: 12, maxWidth: "70%", marginTop: 5 }}
+  >
+    {selectedAddress.fullAddress}
+  </AppText>
+</View>
+
           </View>
-          <ScrollView style={{ flex: 1 }}>
+          <ScrollView style={{ flex: 1, backgroundColor: "#ebebebff" }}>
             <View style={{ marginHorizontal: 15, marginBottom: 50 }}>
               <MenuSection items={items} increment={(id) => dispatch(increment(id))} decrement={(id) => dispatch(decrement(id))} handleAddItem={handleAddItem} restaurantId={restaurantId} />
               <DeliveryAddress selectedAddress={selectedAddress} />
@@ -267,12 +299,13 @@ if (!cart.items.length) return <NoCartFound />;
             </View>
           </ScrollView>
           <View style={{ zIndex: 9999, elevation: 10 }}>
-            <PaymentBar method={method} onPayOnline={handlePaymentOnline} onPayCOD={handleOrderCod} grandTotal={grandTotal}/>
+            <PaymentBar method={method} onPayOnline={handlePayOnlineSafe} onPayCOD={handlePayCodSafe} grandTotal={grandTotal} loading={isPaying} />
           </View>
               
           
           {/* </RootWrapper> */}
         </View>
+        // </RootWrapper>
     )
 }
 
@@ -301,7 +334,7 @@ const styles = StyleSheet.create({
     },
     pageTitle: {
       marginLeft: 8,
-        fontSize: 13,
+        fontSize: 16,
         color: "#464646ff",
         textTransform: "capitalize"
     },

@@ -51,6 +51,7 @@ export default function UserSignup() {
       {loading && (
         <View style={styles.loaderOverlay}>
           <ActivityIndicator size="large" color="#ff5733" />
+          he
         </View>
       )}
 

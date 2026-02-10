@@ -8,7 +8,7 @@ import { playNewOrderSound } from "@/hooks/rest-sound-notification";
 import { useToast } from "@/app/ToastContext";
 
 export default function LogoutButton() {
-  const { showToast } = useToast();
+  // const { showToast } = useToast();
   const dispatch = useDispatch();
   const router = useRouter();
 

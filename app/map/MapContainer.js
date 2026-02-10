@@ -38,6 +38,7 @@ export default function MapContainer({ center, children, onRegionChangeComplete 
         latitudeDelta: 0.0015,
         longitudeDelta: 0.0015,
       }}
+      userInterfaceStyle="light"
       onRegionChangeComplete={(region) => {
         onRegionChangeComplete?.({
           lat: region.latitude,

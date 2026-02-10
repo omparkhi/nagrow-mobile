@@ -54,6 +54,10 @@ export const playNewOrderSound = async () => {
     await playNotification(require("@/assets/notification/rest-sound.mp3"));
 };
 
+export const playNewOrderSoundForRider = async () => {
+    await playNotification(require("@/assets/notification/new-order.mp3"));
+}
+
 export const playOrderUpdateSound = async () => {
     // Update: Informational
     await playNotification(require("@/assets/notification/order.mp3"));

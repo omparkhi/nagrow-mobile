@@ -1,16 +1,20 @@
-import React, { useMemo, useRef, useState, useCallback } from "react";
-import { View, Image, ScrollView, StyleSheet, Dimensions, Alert } from "react-native";
+import React, { useMemo, useRef, useState, useCallback, useImperativeHandle } from "react";
+import { View, Image, ScrollView, StyleSheet, Dimensions, Alert, Platform } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCartThunk, decrement, increment, clearCart, getSubtotal, getMenuQty, removeLastVariantOfItem } from "@/redux/slices/cart/cartSlice";
 import AppText from "@/components/AppText";
 import { TouchableOpacity } from "@/app/TouchableOpacity";
-import { Star, X, Minus, Plus } from "lucide-react-native";
+import { Star, X, Minus, Plus, Menu, MenuIcon, ScrollText } from "lucide-react-native";
 import { BottomSheetModal, BottomSheetBackdrop, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FoodType from "../component/FoodType";
 import AddOnFoodType from "../component/AddonType";
 import AnimatedCounter from "../component/AnimatedCounter";
+import { MaterialIcons } from '@expo/vector-icons';
+import Category from "../dashboard/category";
+import { SectionList } from "react-native";
+import Animated from "react-native-reanimated";
 
 // --- 1. FOOD LIST ITEM ---
 const FoodItemRow = React.memo(({ item, handleAddItem, handleRemoveItem }) => {
@@ -18,6 +22,7 @@ const FoodItemRow = React.memo(({ item, handleAddItem, handleRemoveItem }) => {
   const isCustomizable = (item.variants?.length > 0) || (item.addonGroups?.length > 0);
 
   return (
+    <>
     <View style={styles.listCard}>
        {/* ... (Left Content UI remains exactly same) ... */}
        <View style={{ flex: 1, marginLeft: 5 }}>
@@ -47,26 +52,30 @@ const FoodItemRow = React.memo(({ item, handleAddItem, handleRemoveItem }) => {
                 </TouchableOpacity>
              ) : (
                 <View style={styles.qtyBoxSmall}>
-                   <TouchableOpacity onPress={() => handleRemoveItem(item)} hitSlop={10} style={{padding:5}}>
-                       <Minus size={16} color="#00b069ff" strokeWidth={3}/>
+                   <TouchableOpacity onPress={() => handleRemoveItem(item)} hitSlop={10} style={{paddingLeft:10}}>
+                       <Minus size={16} color="#ffffffff" strokeWidth={4}/>
                    </TouchableOpacity>
                    <AppText variant="small" style={styles.qtyValSmall}>{qty}</AppText>
                    {/* <AnimatedCounter count={qty} textStyle={styles.qtyValSmall} style={{ height: 20 }} /> */}
-                   <TouchableOpacity onPress={() => handleAddItem(item)} hitSlop={10} style={{padding:5}}>
-                       <Plus size={16} color="#00b069ff" strokeWidth={3}/>
+                   <TouchableOpacity onPress={() => handleAddItem(item)} hitSlop={10} style={{paddingRight:10}}>
+                       <Plus size={16} color="#ffffffff" strokeWidth={4}/>
                    </TouchableOpacity>
                 </View>
              )}
           </View>
-       </View>
+       </View> 
     </View>
+    </>
   );
 });
 
+const AnimatedSectionList = Animated.createAnimatedComponent(SectionList);
+
 // --- 2. MAIN COMPONENT ---
-export default function RestaurantMenu({ menu, restaurant }) {
+function RestaurantMenu({ menu, restaurant, onSectionChange, headerComponent, scrollHandler }, ref) {
   const dispatch = useDispatch();
   const bottomSheetModalRef = useRef(null);
+  const sectionListRef = useRef(null);
   const insets = useSafeAreaInsets();
   
   const cartTotal = useSelector(getSubtotal);
@@ -197,17 +206,73 @@ export default function RestaurantMenu({ menu, restaurant }) {
       });
   };
 
-  const itemsToRender = useMemo(() => {
-    if (selectedCategory === "ALL") return Object.values(menu || {}).flat();
-    return menu?.[selectedCategory] || [];
-  }, [menu, selectedCategory]);
+
+  const sections = useMemo(() => {
+    return Object.keys(menu || {}).map(category => ({
+        title: category,
+        data: menu[category]
+    }));
+  }, [menu]);
+
+  const sectionIndexMap = useMemo(() => {
+    const map = {};
+    sections.forEach((sec, index) => {
+        map[sec.title] = index;
+    });
+
+    return map;
+  }, [sections]);
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 20,
+    waitForInteraction: true,
+  }).current;
+
+  const onViewableItemsChanged = useRef(({ viewableItems }) => {
+    if (viewableItems && viewableItems.length > 0) {
+        // Get the section of the first visible item
+        const topItem = viewableItems[0];
+        if (topItem.section && topItem.section.title) {
+            // Send the title back to parent to make it Green
+            if(onSectionChange) {
+                onSectionChange(topItem.section.title); 
+            }
+        }
+    }
+  }).current;
+
+  useImperativeHandle(ref, () => ({
+    scrollToCategory: (category) => {
+        const index = sectionIndexMap[category];
+        // ✅ FIX 3: Safety check
+        if (index !== undefined && sectionListRef.current) {
+            try {
+                sectionListRef.current.scrollToLocation({
+                    sectionIndex: index,
+                    itemIndex: 0,
+                    animated: true,
+                    viewOffset: 120, // Adjust this based on your Navbar height (approx 100-120)
+                    viewPosition: 0
+                });
+            } catch (error) {
+                console.log("Scroll Error:", error);
+            }
+        }
+    }
+  }));
+
+
+//   const itemsToRender = useMemo(() => {
+//     return Object.values(menu || {}).flat();
+//     // return menu?.[selectedCategory] || [];
+//   }, [menu]);
 
   const modalTotal = calculateModalTotal();
 
   return (
     <View style={{ flex: 1, backgroundColor:'#fff' }}>
         {/* Categories */}
-        <View>
+        {/* <View  >
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{padding: 10}}>
                 {["ALL", ...Object.keys(menu || {})].map(cat => (
                     <TouchableOpacity key={cat} onPress={() => setSelectedCategory(cat)} 
@@ -216,14 +281,50 @@ export default function RestaurantMenu({ menu, restaurant }) {
                     </TouchableOpacity>
                 ))}
             </ScrollView>
-        </View>
+        </View> */}
 
         {/* List */}
-        <ScrollView contentContainerStyle={{paddingBottom: 100, paddingHorizontal: 15}}>
+        {/* <ScrollView  contentContainerStyle={{paddingBottom: 100, paddingHorizontal: 15}}  style={{ flex: 1 }} >
             {itemsToRender.map(item => (
                 <FoodItemRow key={item._id} item={item} handleAddItem={handleAddItem} handleRemoveItem={handleRemoveItem} />
             ))}
-        </ScrollView>
+        </ScrollView> */}
+
+        <AnimatedSectionList
+            ref={sectionListRef}
+            sections={sections}
+            keyExtractor={(item) => item._id}
+            stickySectionHeadersEnabled={false}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            ListHeaderComponent={headerComponent}
+            contentContainerStyle={{ paddingBottom: 120 }}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            onScrollToIndexFailed={(info) => {
+                sectionListRef.current?.scrollToLocation({
+                    sectionIndex: info.index,
+                    itemIndex: 0,
+                    animated: true,
+                    viewOffset: 120,
+                })
+            }}
+            renderItem={({ item }) => (
+                <FoodItemRow 
+                    item={item}
+                    handleAddItem={handleAddItem}
+                    handleRemoveItem={handleRemoveItem}
+                />
+            )}
+            renderSectionHeader={({ section }) => (
+                <View style={styles.sectionHeaderContainer}>
+                    <AppText style={styles.sectionHeaderText}>
+                        {section.title}
+                    </AppText>
+                </View>
+            )}
+        />
+
 
         {/* --- MODAL --- */}
         <BottomSheetModal 
@@ -272,9 +373,9 @@ export default function RestaurantMenu({ menu, restaurant }) {
                                         <AppText variant="small" style={{fontSize:14, marginTop:4}}>₹{cartItem.price * cartItem.quantity}</AppText>
                                     </View>
                                     <View style={styles.qtyBoxSmall}>
-                                        <TouchableOpacity onPress={() => handleRepeatAction(cartItem, 'decrement')} hitSlop={10} style={{padding:5}}><Minus size={14} color="#00b069ff" strokeWidth={3}/></TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleRepeatAction(cartItem, 'decrement')} hitSlop={10} style={{paddingVertical: 5, paddingHorizontal: 8}}><Minus size={14} color="#ffffffff" strokeWidth={4}/></TouchableOpacity>
                                         <AppText variant="small" style={styles.qtyValSmall}>{cartItem.quantity}</AppText>
-                                        <TouchableOpacity onPress={() => handleRepeatAction(cartItem, 'increment')} hitSlop={10} style={{padding:5}}><Plus size={14} color="#00b069ff" strokeWidth={3}/></TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleRepeatAction(cartItem, 'increment')} hitSlop={10} style={{paddingVertical: 5, paddingHorizontal: 8}}><Plus size={14} color="#ffffffff" strokeWidth={4}/></TouchableOpacity>
                                     </View>
                                 </View>
                             ))}
@@ -337,6 +438,8 @@ export default function RestaurantMenu({ menu, restaurant }) {
                             ))}
                         </BottomSheetScrollView>
                     )}
+
+
                 </View>
 
                 {/* --- FOOTER --- */}
@@ -371,17 +474,21 @@ export default function RestaurantMenu({ menu, restaurant }) {
   );
 }
 
+export default React.forwardRef(RestaurantMenu);
+
 const styles = StyleSheet.create({
+    sectionHeaderContainer: { paddingTop: 10, marginTop: 5, paddingHorizontal: 15, },
+    sectionHeaderText: { fontSize: 20, color: "#616161" },
     // ... (Keep existing styles, ensure footer is absolute)
-    listCard: { flexDirection: 'row', paddingTop: 15, paddingBottom: 40, borderBottomWidth: 1, borderColor: '#f0f0f0' },
-    listImage: { width: 135, height: 135, borderRadius: 12, backgroundColor: '#eee', marginLeft: 8, borderWidth: 1, borderColor: "#ebebebff" },
+    listCard: { flexDirection: 'row', paddingTop: 15, paddingBottom: 40, borderBottomWidth: 1, borderColor: '#d8e7e1ff', borderStyle: "dashed", paddingHorizontal: 15 },
+    listImage: { width: 150, height: 150, borderRadius: 12, backgroundColor: '#eee', marginLeft: 8, borderWidth: 1, borderColor: "#ebebebff" },
     btnWrapper: { position: 'absolute', bottom: -15, marginLeft: 5, backgroundColor: 'white', borderRadius: 8, shadowColor:'#000', elevation: 3 },
     addBtnSmall: { width: 100, paddingVertical: 5, alignItems: 'center', borderWidth: 1, borderColor: '#00b069ff', backgroundColor: '#f5fffbff', borderRadius: 8 },
     addTxtSmall: { color: '#00b069ff', fontSize:20 },
     customText: { fontSize: 11, color: '#979797ff', marginTop: 5, position:'absolute', bottom: -18, fontFamily: "Nunito" },
-    qtyBoxSmall: { flexDirection: 'row', width: 90, justifyContent: 'space-between', padding: 8, borderWidth: 1, borderColor: '#00b069ff', backgroundColor: '#f5fffbff', borderRadius: 8, alignItems:'center' },
+    qtyBoxSmall: { flexDirection: 'row', width: 100, justifyContent: 'space-between', paddingVertical: 8,  backgroundColor: '#00b069ff', borderRadius: 8, alignItems:'center' },
     qtyBtnSmall: { color: '#00b069ff', fontSize: 18, paddingHorizontal: 5 },
-    qtyValSmall: { color: '#00b069ff', fontSize: 18 },
+    qtyValSmall: { color: '#ffffffff', fontSize: 18 },
     itemName: { fontSize: 20, color: '#212121', lineHeight: 22, marginTop: 10 },
     itemPrice: { fontSize: 15, color: '#212121', marginTop: 6 },
     descText: { fontSize: 13, color: '#616161', marginTop: 6, lineHeight: 14, fontFamily: "Nunito" },
@@ -421,5 +528,7 @@ const styles = StyleSheet.create({
     modalAddBtn: { backgroundColor: '#00b069ff', paddingVertical: 14, borderRadius: 8, width: '50%', alignItems: 'center', paddingHorizontal: 20},
     
     footerContainer: { position:'absolute', bottom:20, left:16, right:16 },
-    footerBtn: { backgroundColor: '#00b069ff', padding: 16, borderRadius: 12, flexDirection:'row', justifyContent:'space-between', alignItems:'center', elevation:5 }
+    footerBtn: { backgroundColor: '#00b069ff', padding: 16, borderRadius: 12, flexDirection:'row', justifyContent:'space-between', alignItems:'center', elevation:5 },
+
+    
 });

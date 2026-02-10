@@ -7,8 +7,10 @@
     import { useRouter } from "expo-router";
     import { Text } from "react-native";
     import { useLocalSearchParams } from "expo-router";
+import { useBottomBarVisibility } from "@/app/context/NavBarVisibilityContext";
 
     export default function ViewOnMapPage() {
+        const { setVisible } = useBottomBarVisibility();
         const router = useRouter();
     const route = useRoute();
     const navigation = useNavigation();
@@ -26,6 +28,11 @@
     useEffect(() => {
         console.log("prev lat, lng", latitude, longitude)
     }, [])
+
+     useEffect(() => {
+        setVisible(false);     
+        return () => setVisible(true);  
+      }, []);
     
     
     if (!addressId || !latitude || !longitude) {

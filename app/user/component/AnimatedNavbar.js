@@ -24,16 +24,16 @@ export default function AnimatedNavbar({ scrollY, title }) {
       backgroundColor: `rgba(255, 255, 255, ${opacity})`,
       borderBottomColor: `rgba(230, 230, 230, ${opacity})`,
       borderBottomWidth: 1,
-      elevation: opacity * 5, // Shadow effect on Android
-      shadowOpacity: opacity * 0.1, // Shadow effect on iOS
+      // elevation: opacity * 5, // Shadow effect on Android
+      // shadowOpacity: opacity * 0.1, // Shadow effect on iOS
     };
   });
 
   // 2. Icon Color Animation (White -> Black)
-  const iconAnimatedStyle = useAnimatedStyle(() => {
-    const color = interpolateColor(scrollY.value, [0, 100], ['#ffffff', '#363636ff']);
-    return { color: color };
-  });
+  // const iconAnimatedStyle = useAnimatedStyle(() => {
+  //   const color = interpolateColor(scrollY.value, [0, 100], ['#ffffff', '#363636ff']);
+  //   return { color: color };
+  // });
 
   // 3. Title Fade In (Hidden -> Visible)
   const titleAnimatedStyle = useAnimatedStyle(() => {
@@ -41,14 +41,22 @@ export default function AnimatedNavbar({ scrollY, title }) {
     return { opacity: opacity };
   });
 
+  const handleBack = () => {
+    if (router.back()) {
+      router.back();
+    } else {
+      router.push("/user/dashboard/dash");
+    }
+  }
+
   return (
     <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
       {/* <SafeAreaView> */}
         
         <View style={styles.headerContent}>
           {/* Back Button */}
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <AnimatedIcon name="arrow-back" size={24} style={iconAnimatedStyle} />
+          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+            <AnimatedIcon name="arrow-back" size={26} style="#000000" />
           </TouchableOpacity>
 
           {/* Sticky Title (Fades in) */}
@@ -91,7 +99,7 @@ const styles = StyleSheet.create({
     // alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 19,
     color: '#363636ff',
     textTransform: 'capitalize',
   },

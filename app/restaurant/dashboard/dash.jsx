@@ -40,7 +40,7 @@ export default function Dashboard({ navigation }) {
  
   return (
     <ScrollView style={{ flex: 1 }}>
-      <NagrowToast/>
+      {/* <NagrowToast/> */}
       <DashboardMetricsRow/>
       <ActiveOrders activeOrders={active} />
       <PopularMenuInsights  />

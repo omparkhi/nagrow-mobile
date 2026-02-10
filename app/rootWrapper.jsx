@@ -2,64 +2,49 @@ import React, { useEffect } from "react";
 import { View, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import * as NavigationBar from "expo-navigation-bar"; // Import this
+import * as NavigationBar from "expo-navigation-bar"; 
 
 export default function RootWrapper({ 
-  children, 
-  bg = "#fff", 
+  immersive = false, 
   barStyle = "dark", 
-  topSafeAreaColor = "transparent", 
-  bottomSafeAreaColor = "transparent",
+  bottombar = false,
+  bottomSafeAreaColor = "white",
+  children 
 }) {
   const insets = useSafeAreaInsets();
-
-  // Handle Android Bottom Navigation Bar Colors
-  useEffect(() => {
+  
+useEffect(() => {
     if (Platform.OS === 'android') {
-      // 1. Set the background color of the system navigation bar to match your prop
-      NavigationBar.setBackgroundColorAsync(bottomSafeAreaColor);
-      
-      // 2. logic to set the icons (back/home buttons) to dark or light
-      // If the bottom bar is white (or light), we generally want "dark" buttons.
-      // If the bottom bar is black, we want "light" buttons.
-      // You can make this smarter, but for "White Bottom", use "dark".
-      const buttonStyle = bottomSafeAreaColor === "white" || bottomSafeAreaColor === "#fff" 
-        ? "dark" 
-        : "light";
-        
-      NavigationBar.setButtonStyleAsync(buttonStyle);
+      // FORCE Android System Bar to match your color
+      NavigationBar.setBackgroundColorAsync(bottomSafeAreaColor === "transparent" ? "#ffffff" : bottomSafeAreaColor);
+      // Ensure icons are dark so they show up on the white background
+      NavigationBar.setButtonStyleAsync("dark"); 
     }
   }, [bottomSafeAreaColor]);
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* 1. Status Bar Configuration */}
+    <View style={{ flex: 1, backgroundColor: bottomSafeAreaColor === "transparent" ? "#fff" : bottomSafeAreaColor }}>
       <StatusBar 
+        translucent 
         style={barStyle} 
-        backgroundColor="transparent"
-        translucent={true}
+        backgroundColor="transparent" 
       />
-
-      {/* 2. Top Safe Area Spacer */}
-      <View 
-        style={{ 
-          height: insets.top, 
-          backgroundColor: topSafeAreaColor 
-        }} 
-      />
-
-      {/* 3. Main Content Area */}
-      <View style={{ flex: 1, backgroundColor: bg }}>
+      
+      {/* Top Spacer (Only if NOT immersive) */}
+      {!immersive && <View style={{ height: insets.top, backgroundColor: "white" }} />}
+      
+      {/* Main Content */}
+      <View style={{ flex: 1, backgroundColor: '#fff' }}>
         {children}
       </View>
 
-      {/* 4. Bottom Safe Area Spacer */}
-      <View 
-        style={{ 
+      {/* Bottom Spacer */}
+      {!bottombar && (
+        <View style={{ 
           height: insets.bottom, 
           backgroundColor: bottomSafeAreaColor 
-        }} 
-      />
+        }} />
+      )}
     </View>
   );
 }

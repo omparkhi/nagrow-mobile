@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -12,16 +12,30 @@ import { fetchRiderEarnings } from "@/redux/slices/rider/riderEarningSlice";
 import AppText from "@/components/AppText";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useHeaderVisibility } from "@/app/context/HeaderVisibilityContext";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useBottomBarVisibility } from "@/app/context/NavBarVisibilityContext";
+import RootWrapper from "@/app/rootWrapper";
+import { useLayoutConfig } from "@/app/context/LayoutContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRiderBottomBarVisibility } from "@/app/context/RiderNavBarVisiblityContext";
 
 export default function RiderEarningsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { setVisible } = useHeaderVisibility();
+  const { setIsImmersive, setBottomSafeColor } = useLayoutConfig();
 
-  useEffect(() => {
-  setVisible(false);     // Hide header
-  return () => setVisible(true);  // Show header again when leaving page
-  }, []);
+    useFocusEffect(
+      useCallback(() => {
+        setIsImmersive(true);
+        setBottomSafeColor("white"); // Set bottom bar to white if needed
+  
+        return () => {
+          // 2. When Screen Unfocuses (Navigating away): Reset to Default
+          setIsImmersive(false);
+          setBottomSafeColor("white");
+        };
+      }, [])
+    );
 
   const dispatch = useDispatch();
   const { earnings, payouts, loading } = useSelector(
@@ -41,11 +55,15 @@ export default function RiderEarningsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+    <RootWrapper immersive={true} barStyle="light">
+    <View style={[styles.container]}>
+      {/* <View style={{ paddingTop: insets.top + 10 }}> */}
+        {/* <StatusBar barStyle="light-content" backgroundColor="#0f172a"  /> */}
+      {/* </View> */}
+      
 
       {/* WALLET HERO */}
-      <View style={styles.hero}>
+      <View style={[styles.hero, {paddingTop: insets.top + 20 } ]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <TouchableOpacity
                 onPress={() => router.back()}
@@ -99,6 +117,7 @@ export default function RiderEarningsScreen() {
         )}
       </View>
     </View>
+    </RootWrapper>
   );
 }
 
@@ -158,7 +177,7 @@ const EmptyState = () => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc"
+    // backgroundColor: "#f8fafc"
   },
 
   loader: {

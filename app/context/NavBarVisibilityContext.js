@@ -16,7 +16,7 @@ export function NavBarVisibilityProvider({ children }) {
             stiffness: 300,
             damping: 30,
             mass: 0.5,
-            duration: 400, // Speed of the slide (300ms is standard smooth)
+            duration: 300, // Speed of the slide (300ms is standard smooth)
             useNativeDriver: true, // Optimizes performance
         }).start();
     }, [visible]);

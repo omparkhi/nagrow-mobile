@@ -25,6 +25,7 @@ import { usePushNotification } from "@/hooks/usePushNotification";
 import LiveOrderFloat from "./LiveOrderFloat";
 import UserBottomNav from "./navigation/UserBottomNav";
 import { NavBarVisibilityProvider, useBottomBarVisibility } from "../context/NavBarVisibilityContext";
+import { usePathname } from "expo-router";
 
 // import { GlobalLoaderProvider } from "../context/GlobalLoaderContext";
 // import { NavProvider } from "../NavContext";
@@ -40,17 +41,28 @@ export default function UserLayout () {
 function UserLayoutContent() {
   const { visible } = useBottomBarVisibility();
   const soundRef = useRef(null);
-  const { showToast } = useToast();
+  // const { showToast } = useToast();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
 
   usePushNotification(user?._id, "user");
+
+  // inside your component
+const pathname = usePathname();
+
+useEffect(() => {
+  console.log("📍 CURRENT SCREEN IS:", pathname);
+}, [pathname]);
   
   useEffect(() => {
+
     dispatch(fetchUser());
     // Fetch ALL active orders on app launch so the list is ready
-    dispatch(fetchActiveOrders());
-  }, [dispatch]);
+    if (user?._id) {
+      dispatch(fetchActiveOrders());
+    }
+  
+  }, [dispatch, user?._id]);
 
 useEffect(() => {
     // 1. Declare socket variable here so cleanup can see it
@@ -60,7 +72,7 @@ useEffect(() => {
     const handleOrderStatus = (data) => {
         console.log("GLOBAL ORDER STATUS:", data);
         playOrderUpdateSound();
-        showToast(`Order ${data.orderNo}`, `Your Order is now ${data.status}`);
+        // showToast(`Order ${data.orderNo}`, `Your Order is now ${data.status}`);
         // OPTIMIZATION: Update Redux state directly instead of API call
         dispatch(updateActiveOrderStatus({
             orderId: data.orderId,
@@ -115,6 +127,9 @@ useEffect(() => {
     };
 
   }, [user?._id]);
+
+  console.log("🔥 ROOT LAYOUT RENDER");
+
 
 
 

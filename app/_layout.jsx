@@ -1,6 +1,6 @@
-import { Stack, useNavigation } from "expo-router";
+import { Stack, useNavigation, usePathname } from "expo-router";
 import { useDispatch } from "react-redux";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { SplashScreen } from "expo-router";
 // import { useEffect } from "react";
 import { useFonts } from "expo-font";
@@ -20,9 +20,10 @@ import { connectSocket } from "@/services/connectSocket";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
-import { GlobalLoaderProvider } from "./context/GlobalLoaderContext";
 // import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { LayoutProvider, useLayoutConfig } from "./context/LayoutContext";
+import "@/services/LocationTask"
 
 // import { ScrollProvider } from "./NavContext";
 
@@ -44,8 +45,31 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('Background Notification:', remoteMessage);
 });
 
+function AppContent() {
+  // ✅ Safe to use hook here
+  const { isImmersive, bottomSafeColor } = useLayoutConfig();
+
+  return (
+    <RootWrapper 
+      immersive={isImmersive} 
+      bottombar={false}
+      bottomSafeAreaColor={bottomSafeColor}
+      barStyle={isImmersive ? "light" : "dark"} 
+    >
+        <Stack screenOptions={{ 
+                  headerShown: false,
+                  animation: "slide_from_right",
+                  gestureEnabled: true,
+                  gestureDirection: "horizontal"
+                }} 
+              />  
+    </RootWrapper>
+  );
+}
+
 // 2. ROOT LAYOUT COMPONENT
 export default function RootLayout() {
+  // const { isImmersive, bottomSafeColor } = useLayoutConfig();
   // useEffect(() => {
   //   async function getToken() {
   //     const authStatus = await messaging().requestPermission();
@@ -73,8 +97,25 @@ export default function RootLayout() {
     "Nunito-Regular": require("../assets/fonts/Nunito-Bold.ttf"),
     "Nunito-SemiBold": require("../assets/fonts/Nunito-SemiBold.ttf"),
     "Nunito-Bold": require("../assets/fonts/Nunito-Bold.ttf"),
-    "Nunito-Light": require("../assets/fonts/Nunito-Light.ttf")
+    "Nunito-Light": require("../assets/fonts/Nunito-Light.ttf"),
+    "Gravitas": require("../assets/fonts/GravitasOne-Regular.ttf"),
   });
+
+  const pathname = usePathname();
+  // useEffect(() => {
+  //   console.log("path name: ", pathname);
+  // }, []);
+
+  useEffect(() => {
+    const saveRoute = async () => {
+      if (pathname && pathname !== "/" && pathname !== "/index" && pathname !== "/home" && !pathname.includes("auth")) {
+        await AsyncStorage.setItem("lastVisitedPath", pathname);
+        // console.log("💾 Saved Path:", pathname);
+      }
+    };
+
+    saveRoute();
+  }, [pathname]);
 
 
   //connect socket at one time 
@@ -104,23 +145,23 @@ export default function RootLayout() {
     <>
       <GestureHandlerRootView>
       <BottomSheetModalProvider>
-      <GestureHandlerRootView>
-      <RootWrapper bg="#ffffffff" topSafeAreaColor="black" bottomSafeAreaColor="white"  barStyle="light" >
+      {/* <GestureHandlerRootView> */}
+        {/* <LayoutProvider> */}
+      {/* <RootWrapper immersive={isImmersive}  bottomSafeAreaColor={bottomSafeColor} barStyle={isImmersive ? "light" : "dark"}  > */}
+      {/* <SafeAreaView> */}
         <Provider store={store}>
           <PersistGate loading={null} persistor={persistor}>
-          <ToastProvider>
-              <Stack screenOptions={{ 
-                  headerShown: false,
-                  animation: "slide_from_right",
-                  gestureEnabled: true,
-                  gestureDirection: "horizontal"
-                }} 
-              />  
-          </ToastProvider>
+          {/* <ToastProvider> */}
+              <LayoutProvider>
+                <AppContent />
+              </LayoutProvider>
+          {/* </ToastProvider> */}
           </PersistGate>
         </Provider>
-      </RootWrapper>
-      </GestureHandlerRootView>
+      {/* </RootWrapper> */}
+      {/* </SafeAreaView> */}
+      
+      {/* </GestureHandlerRootView> */}
       </BottomSheetModalProvider>
       </GestureHandlerRootView>
     </>
